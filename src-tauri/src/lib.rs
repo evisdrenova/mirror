@@ -1,11 +1,11 @@
 mod database;
 mod shortcut;
 
+use crate::shortcut::shortcut_hotkey;
+use tauri::Manager;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-use crate::shortcut::shortcut_hotkey;
-
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg_attr(mobile, tauri::mobile_entry_poPcartint)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -17,7 +17,7 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-            // let db_path = database::init_database(app.app_handle().clone())?;
+            let _ = database::init_database(app.app_handle().clone())?;
             // let db_path_str = &db_path.to_string_lossy();
 
             let shortcutwrapper = shortcut_hotkey()?;
