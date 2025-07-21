@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: Inter, sans-serif;
+
+  /* Color definitions using HSL variables */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Border radius variables */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  /* Base styles for elements */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  /* Root theme variables */
+  :root {
+    --background: 0 0% 97%;
+    --foreground: 0 0% 12%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 30%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 12%;
+    --border: 0 0% 40%;
+    --input: 0 0% 90%;
+    --card: 180 2% 96%;
+    --card-foreground: 0 0% 12%;
+    --primary: 0 0% 85%;
+    --primary-foreground: 0 0% 14%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 15%;
+    --accent: 220 80% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 220 60% 40%;
+    --radius: 0.5rem;
+    --transparent: 0 0% 0% 0;
+    border-radius: 12px;
+  }
+
+  /* Dark theme variables */
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 75%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 40%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 7%;
+    --border: 0 0% 29%;
+    --input: 0 0% 18%;
+    --card: 180 2% 8%;
+    --card-foreground: 0 0% 10%;
+    --primary: 238 0% 16%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 95%;
+    --accent: 220 13% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 95%;
+    --ring: 220 13% 40%;
+    --transparent: 0 0% 0% 0;
+  }
+
+  body {
+    @apply font-sans rounded-xl bg-zinc-200 dark:bg-zinc-900 overflow-hidden;
+  }
+}
+
+/* Utility classes */
+.dragable {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--transparent));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border));
+}
+
+/* Toast styling */
+[data-sonner-toast][data-styled="true"] {
+  padding-top: 4px;
+  padding-right: 4px;
+}
