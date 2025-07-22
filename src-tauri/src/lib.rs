@@ -19,7 +19,8 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
                     let state = app.state::<AppState>();
-                    shortcut::handle_shortcut(&state.db_path, shortcut, event);
+                    let app_handle = app.app_handle();
+                    shortcut::handle_shortcut(app_handle, &state.db_path, shortcut, event);
                 })
                 .build(),
         )

@@ -94,7 +94,7 @@
   }
 
   body {
-    @apply font-sans rounded-xl bg-zinc-200 dark:bg-zinc-900 overflow-hidden;
+    @apply font-sans rounded-xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden;
   }
 }
 

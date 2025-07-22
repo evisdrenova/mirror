@@ -9,7 +9,7 @@ use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread, time::Duration};
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,7 +26,12 @@ pub enum Clip {
     // add in html
 }
 
-pub fn handle_shortcut(db_path: &PathBuf, shortcut: &hotkey::HotKey, event: GlobalHotKeyEvent) {
+pub fn handle_shortcut(
+    app_handle: &AppHandle,
+    db_path: &PathBuf,
+    shortcut: &hotkey::HotKey,
+    event: GlobalHotKeyEvent,
+) {
     let conn = Connection::open(&db_path)
         .map_err(|e| {
             eprintln!("Failed to open database: {e}");
@@ -40,7 +45,7 @@ pub fn handle_shortcut(db_path: &PathBuf, shortcut: &hotkey::HotKey, event: Glob
         match event.state {
             ShortcutState::Pressed => {
                 println!("Meta+Shift+S Pressed!");
-                handle_capture(&conn);
+                handle_capture(app_handle, &conn);
             }
             ShortcutState::Released => {
                 println!("Meta+Shift+S Released!");
@@ -61,14 +66,14 @@ fn simulate_copy() {
     let _ = enigo.key(Key::Meta, Release);
 }
 
-pub fn handle_capture(conn: &Connection) {
+pub fn handle_capture(app: &AppHandle, conn: &Connection) {
     simulate_copy();
 
     thread::sleep(Duration::from_millis(120));
 
     if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(100)) {
         debug_print_clip(&clip);
-        match save_clip(conn, &clip) {
+        match save_clip(app, conn, &clip) {
             Ok(()) => println!("Clip saved successfully"),
             Err(e) => eprintln!("Failed to save clip: {}", e),
         }
@@ -148,7 +153,11 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
-fn save_clip(conn: &Connection, clip: &Clip) -> Result<(), Box<dyn std::error::Error>> {
+fn save_clip(
+    app_handle: &AppHandle,
+    conn: &Connection,
+    clip: &Clip,
+) -> Result<(), Box<dyn std::error::Error>> {
     let json_data = match clip {
         Clip::Text { plain } => {
             serde_json::json!({
@@ -177,7 +186,8 @@ fn save_clip(conn: &Connection, clip: &Clip) -> Result<(), Box<dyn std::error::E
         params![json_data.to_string()],
     )?;
 
-    println!("Saved clip");
+    app_handle.emit("clip-saved", {}).unwrap();
+
     Ok(())
 }
 
