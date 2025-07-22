@@ -1,13 +1,14 @@
 mod database;
 mod shortcut;
+
 use crate::shortcut::shortcut_hotkey;
 use std::path::PathBuf;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 #[derive(Clone)]
-struct AppState {
-    db_path: PathBuf,
+pub struct AppState {
+    pub db_path: PathBuf,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_poPcartint)]
@@ -34,7 +35,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![shortcut::get_items])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
