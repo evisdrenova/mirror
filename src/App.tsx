@@ -3,8 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./globals.css";
 import { errorToast } from "./components/ui/toast";
+import { DataTable } from "./components/data-table";
+import { columns } from "./components/columns";
 
-interface ClipItem {
+export interface ClipItem {
   id: string;
   clip: {
     Text?: { plain: string };
@@ -33,7 +35,6 @@ export default function App() {
   useEffect(() => {
     getItems();
 
-    // Listen for clip-saved events
     const unlisten = listen("clip-saved", () => {
       console.log("New clip saved, refreshing...");
       getItems();
@@ -48,16 +49,7 @@ export default function App() {
     <div>
       <div className="mx-20">
         <div>Mirror</div>
-        <div className="flex flex-col mt-20">
-          {items.map((item, index) => (
-            <div key={item.id || index}>
-              <div>ID: {item.id}</div>
-              <div>Created: {item.created_at}</div>
-              <div>Clip: {JSON.stringify(item.clip)}</div>
-              <hr />
-            </div>
-          ))}
-        </div>
+        <DataTable columns={columns} data={items} />
       </div>
     </div>
   );
