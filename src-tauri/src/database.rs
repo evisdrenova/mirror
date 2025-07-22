@@ -29,11 +29,11 @@ pub fn init_database(app_handle: AppHandle) -> AppResult<std::path::PathBuf> {
     };
 
     let links_table = r#"
-    CREATE TABLE IF NOT EXISTS links (
-        id  TEXT PRIMARY KEY ,
-        link_text   TEXT NOT NULL
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    );"#;
+    create table if not exists clips (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clip TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);"#;
 
     let statements = vec![links_table];
 

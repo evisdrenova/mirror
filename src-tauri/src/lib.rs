@@ -1,9 +1,14 @@
 mod database;
 mod shortcut;
-
 use crate::shortcut::shortcut_hotkey;
+use std::path::PathBuf;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+#[derive(Clone)]
+struct AppState {
+    db_path: PathBuf,
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_poPcartint)]
 pub fn run() {
@@ -12,13 +17,17 @@ pub fn run() {
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
-                    shortcut::handle_shortcut(shortcut, event);
+                    let state = app.state::<AppState>();
+                    shortcut::handle_shortcut(&state.db_path, shortcut, event);
                 })
                 .build(),
         )
         .setup(|app| {
-            let _ = database::init_database(app.app_handle().clone())?;
-            // let db_path_str = &db_path.to_string_lossy();
+            let db_path = database::init_database(app.app_handle().clone())?;
+
+            app.manage(AppState {
+                db_path: db_path.clone(),
+            });
 
             let shortcutwrapper = shortcut_hotkey()?;
             app.global_shortcut().register(shortcutwrapper)?;

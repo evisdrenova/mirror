@@ -21,6 +21,7 @@ arboard = "3.6.0"
 global-hotkey = "0.7.0"
 rusqlite = { version = "0.37.0", features = ["bundled", "vtab"] }
 enigo = "0.5.0"
+base64 = "0.22.1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
