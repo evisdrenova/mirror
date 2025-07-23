@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Input } from "./ui/input";
+import { Check, X } from "lucide-react";
+import Spinner from "./Spinner";
 
 interface ClipContext {
   content_preview: string;
@@ -128,78 +130,53 @@ export const ClipToolbar: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-hidden bg-gray-50 p-5 toolbar-container rounded-xl">
-      <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
+    <div className="min-h-screen w-full flex flex-row items-center gap-2 px-1 toolbar-container ">
+      {/* <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
         {clipData.content_preview}
-      </div>
+      </div> */}
 
-      <div className="mb-4">
-        <label
-          htmlFor="category"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          Category
-        </label>
-        <div className="flex items-center gap-3">
-          <Input
-            id="category"
-            type="text"
-            value={userCategory}
-            onChange={(e) => setUserCategory(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={clipData.suggested_category || "Enter category..."}
-            list="category-suggestions"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          />
-          {clipData.suggested_category && (
-            <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
-              AI: {clipData.suggested_category}
-            </span>
-          )}
-        </div>
+      <Input
+        id="category"
+        type="text"
+        value={userCategory}
+        onChange={(e) => setUserCategory(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={clipData.suggested_category || "Enter category..."}
+        list="category-suggestions"
+        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+      />
+      {clipData.suggested_category && (
+        <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
+          AI: {clipData.suggested_category}
+        </span>
+      )}
 
-        <Select value={userCategory} onValueChange={setUserCategory}>
-          <SelectTrigger className="w-40 h-8 border-0 bg-transparent">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>{" "}
-          <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-3">
-        <label className="text-sm font-medium text-gray-700">
-          Notes (optional)
-        </label>
-        <Textarea
-          value={userNotes}
-          onChange={(e) => setUserNotes(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Add any additional context or notes..."
-          rows={3}
-          className="min-h-24 resize-none"
-        />
-      </div>
+      <Select value={userCategory} onValueChange={setUserCategory}>
+        <SelectTrigger className="w-40 h-8 border-0 bg-transparent">
+          <SelectValue placeholder="Select type" />
+        </SelectTrigger>{" "}
+        <SelectContent>
+          {categories.map((cat) => (
+            <SelectItem key={cat} value={cat}>
+              {cat}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <div className="flex items-center justify-between w-full pt-4 border-t">
-        <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          {isSaving ? "Saving..." : "Save"}
-        </Button>
-      </div>
-      <div className="mt-3 text-xs text-gray-500 text-center">
-        Press Enter to save • Escape to cancel
-      </div>
+      <Input
+        value={userNotes}
+        onChange={(e) => setUserNotes(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Add any additional context or notes..."
+        className="resize-none"
+      />
+      <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
+        <X />
+      </Button>
+      <Button onClick={handleSave} disabled={isSaving} variant="ghost">
+        {isSaving ? <Spinner /> : <Check />}
+      </Button>
     </div>
   );
 };

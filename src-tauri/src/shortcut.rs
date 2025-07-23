@@ -51,7 +51,7 @@ pub fn handle_shortcut(
         match event.state {
             ShortcutState::Pressed => {
                 println!("shortcut pressed!");
-                handle_capture(app_handle, &db_path);
+                handle_capture(app_handle);
             }
             ShortcutState::Released => {
                 println!("shortcut released!");
@@ -74,7 +74,7 @@ fn simulate_copy() {
     let _ = enigo.key(Key::Meta, Release);
 }
 
-pub fn handle_capture(app: &AppHandle, db_path: &PathBuf) {
+pub fn handle_capture(app: &AppHandle) {
     simulate_copy();
     thread::sleep(Duration::from_millis(120));
 
@@ -181,13 +181,12 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
     let window =
         WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("toolbar.html".into()))
             .title("Add Context to Clip")
-            .inner_size(500.0, 80.0)
+            .inner_size(800.0, 45.0)
             .resizable(true)
             .center()
             .always_on_top(true)
             .skip_taskbar(true)
             .decorations(false)
-            // .shadow(true)
             .transparent(true)
             .build();
 
