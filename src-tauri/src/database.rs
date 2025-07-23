@@ -32,6 +32,7 @@ pub fn init_database(app_handle: AppHandle) -> AppResult<std::path::PathBuf> {
     create table if not exists clips (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         clip TEXT,
+        category TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );"#;
 

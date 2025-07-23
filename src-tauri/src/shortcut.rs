@@ -12,6 +12,16 @@ use std::{path::PathBuf, thread, time::Duration};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
+use async_openai::{
+    types::responses::{
+        AllowedTools, CreateResponseArgs, Input, InputItem, InputMessageArgs, McpArgs,
+        RequireApproval, RequireApprovalPolicy, Role,
+        ToolDefinition::{Mcp, WebSearchPreview},
+        WebSearchPreviewArgs,
+    },
+    Client,
+};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Clip {
     Text {
@@ -58,6 +68,7 @@ pub fn shortcut_hotkey() -> Result<Shortcut, Box<dyn std::error::Error>> {
     let sc = Shortcut::new(Some(Modifiers::META | Modifiers::SHIFT), Code::KeyS);
     Ok(sc)
 }
+
 #[cfg(target_os = "macos")]
 fn simulate_copy() {
     let mut enigo = Enigo::new(&Settings::default()).unwrap();
@@ -181,6 +192,8 @@ fn save_clip(
         }
     };
 
+    let llm_response = call_llm(clip);
+
     conn.execute(
         "INSERT INTO clips(clip) VALUES (?)",
         params![json_data.to_string()],
@@ -189,6 +202,35 @@ fn save_clip(
     app_handle.emit("clip-saved", {}).unwrap();
 
     Ok(())
+}
+
+async fn call_llm(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
+    let client = Client::new();
+
+    println!("calling llm");
+
+    let request = CreateResponseArgs::default()
+        .max_output_tokens(512u32)
+        .model("gpt-4.1")
+        .input(Input::Items(vec![InputItem::Message(
+            InputMessageArgs::default()
+                .role(Role::User)
+                .content("How does TLS work in websites?")
+                .build()?,
+        )]))
+        .build()?;
+
+    println!("{}", serde_json::to_string(&request).unwrap());
+
+    let response = client.responses().create(request).await?;
+
+    for output in response.output {
+        println!("\nOutput: {:?}\n", output);
+    }
+
+    let res: &'static str = "test";
+
+    Ok(res.to_string())
 }
 
 #[derive(Debug, Serialize)]
@@ -271,7 +313,7 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
         items.push(item.map_err(|e| format!("Failed to process row: {e}"))?);
     }
 
-    println!("items {:?}", items);
+    // println!("items {:?}", items);
 
     Ok(items)
 }
