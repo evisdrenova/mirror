@@ -40,8 +40,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_items,
-            commands::submit_clip_context,
-            commands::cancel_clip_context
+            commands::submit_clip
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

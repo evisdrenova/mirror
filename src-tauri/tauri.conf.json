@@ -13,9 +13,11 @@
     "windows": [
       {
         "title": "Mirror",
-        "width": 800,
-        "height": 600,
-        "dragDropEnabled": true
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "url": "index.html"
       }
     ],
     "security": {

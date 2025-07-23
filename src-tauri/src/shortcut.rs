@@ -27,6 +27,11 @@ pub enum Clip {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ClipMetadata {
+    pub clip_json: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ClipContext {
     pub content_preview: String,
     pub suggested_category: Option<String>,
@@ -89,7 +94,7 @@ pub fn handle_capture(app: &AppHandle, db_path: &PathBuf) {
             }
         };
 
-        launch_toolbar(app, db_path, clip, content_preview);
+        launch_toolbar(app, clip, content_preview);
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
     }
@@ -166,9 +171,9 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
-fn launch_toolbar(app: &AppHandle, db_path: &PathBuf, clip: Clip, content_preview: String) {
+fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
     // close any other pop up first
-    if let Some(existing_window) = app.get_webview_window("clip-context") {
+    if let Some(existing_window) = app.get_webview_window("clip-toolbar") {
         existing_window.close().ok();
     }
 
@@ -184,6 +189,16 @@ fn launch_toolbar(app: &AppHandle, db_path: &PathBuf, clip: Clip, content_previe
             .build();
 
     if let Ok(window) = window {
+        // Send clip metadata to the React component
+        let metadata = ClipMetadata {
+            clip_json: serde_json::to_string(&clip).unwrap(),
+        };
+
+        if let Err(e) = window.emit("clip-metadata", &metadata) {
+            eprintln!("Failed to emit clip metadata: {}", e);
+        }
+
+        // Get AI suggestion in background
         tauri::async_runtime::spawn(async move {
             let suggested_category = llm::get_llm_category(&clip).await.ok();
 
@@ -194,7 +209,7 @@ fn launch_toolbar(app: &AppHandle, db_path: &PathBuf, clip: Clip, content_previe
                 user_notes: None,
             };
 
-            // Send initial data to the popup window
+            // Send AI suggestion to the React component
             if let Err(e) = window.emit("clip-data", &context) {
                 eprintln!("Failed to emit clip data: {}", e);
             }
