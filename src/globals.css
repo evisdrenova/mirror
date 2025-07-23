@@ -96,6 +96,9 @@
   body {
     @apply font-sans rounded-xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden;
   }
+  .toolbar-container {
+    @apply bg-white rounded-lg overflow-hidden border border-gray-200;
+  }
 }
 
 /* Utility classes */
@@ -130,10 +133,4 @@
 [data-sonner-toast][data-styled="true"] {
   padding-top: 4px;
   padding-right: 4px;
-}
-
-.toolbar-container {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
 }

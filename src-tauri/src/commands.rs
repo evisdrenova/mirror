@@ -44,7 +44,7 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
             let category: Option<String> = row.get(3).ok();
             let notes: Option<String> = row.get(4).ok();
 
-            let clip_value: serde_json::Value = serde_json::from_str(&clip_json).map_err(|| {
+            let clip_value: serde_json::Value = serde_json::from_str(&clip_json).map_err(|e| {
                 rusqlite::Error::InvalidColumnType(
                     0,
                     "Invalid JSON".to_string(),

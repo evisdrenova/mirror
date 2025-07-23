@@ -188,6 +188,7 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
             .skip_taskbar(true)
             .decorations(false)
             .transparent(true)
+            .shadow(true)
             .build();
 
     if let Ok(window) = window {

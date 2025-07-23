@@ -2,17 +2,10 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { Input } from "./ui/input";
 import { Check, X } from "lucide-react";
 import Spinner from "./Spinner";
+import { CategoryCombobox } from "./CategoryCombobox";
 
 interface ClipContext {
   content_preview: string;
@@ -131,39 +124,13 @@ export const ClipToolbar: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-row items-center gap-2 px-1 toolbar-container ">
-      {/* <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
-        {clipData.content_preview}
-      </div> */}
-
-      <Input
-        id="category"
-        type="text"
+      <CategoryCombobox
         value={userCategory}
-        onChange={(e) => setUserCategory(e.target.value)}
+        onChange={(e) => setUserCategory(e)}
         onKeyDown={handleKeyDown}
         placeholder={clipData.suggested_category || "Enter category..."}
-        list="category-suggestions"
-        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+        categories={categories}
       />
-      {clipData.suggested_category && (
-        <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
-          AI: {clipData.suggested_category}
-        </span>
-      )}
-
-      <Select value={userCategory} onValueChange={setUserCategory}>
-        <SelectTrigger className="w-40 h-8 border-0 bg-transparent">
-          <SelectValue placeholder="Select type" />
-        </SelectTrigger>{" "}
-        <SelectContent>
-          {categories.map((cat) => (
-            <SelectItem key={cat} value={cat}>
-              {cat}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       <Input
         value={userNotes}
         onChange={(e) => setUserNotes(e.target.value)}
@@ -180,3 +147,16 @@ export const ClipToolbar: React.FC = () => {
     </div>
   );
 };
+
+{
+  /* <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
+        {clipData.content_preview}
+      </div> */
+}
+{
+  /* {clipData.suggested_category && (
+        <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
+          AI: {clipData.suggested_category}
+        </span>
+      )} */
+}
