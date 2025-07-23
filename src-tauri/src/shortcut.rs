@@ -189,8 +189,8 @@ async fn save_clip(
     let conn = Connection::open(db_path)?;
 
     conn.execute(
-        "INSERT INTO clips(clip) VALUES (?)",
-        params![json_data.to_string()],
+        "INSERT INTO clips(clip, category) VALUES (?,?)",
+        params![json_data.to_string(), category],
     )?;
 
     app_handle.emit("clip-saved", {}).unwrap();

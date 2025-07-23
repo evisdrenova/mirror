@@ -10,7 +10,7 @@ pub struct ClipItem {
     id: i64,
     clip: Clip,
     created_at: String,
-    category: String,
+    category: Option<String>,
 }
 
 #[tauri::command]
@@ -38,7 +38,7 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
             let id = row.get(0)?;
             let clip_json: String = row.get(1)?;
             let created_at: String = row.get(2)?;
-            let category: String = row.get(3)?;
+            let category: Option<String> = row.get(3).ok();
 
             let clip_value: serde_json::Value = serde_json::from_str(&clip_json).map_err(|e| {
                 rusqlite::Error::InvalidColumnType(
@@ -84,7 +84,7 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
         })
         .map_err(|e| format!("Failed to execute query: {e}"))?;
 
-    let mut items = Vec::new();
+    let mut items: Vec<ClipItem> = Vec::new();
     for item in clip_iter {
         items.push(item.map_err(|e| format!("Failed to process row: {e}"))?);
     }

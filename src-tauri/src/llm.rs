@@ -5,7 +5,6 @@ use async_openai::{
     },
     Client,
 };
-use serde_json::Value;
 
 pub async fn call_llm(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
@@ -93,12 +92,23 @@ Examples:
 }
 
 fn extract_content_from_output(output: &OutputContent) -> Option<String> {
-    use async_openai::types::responses::OutputContent;
+    use async_openai::types::responses::{Content, OutputContent};
 
     match output {
         OutputContent::Message(message) => {
-            // Extract content from the message
-            message.content.clone()
+            // Extract text from the content array
+            for content_item in &message.content {
+                match content_item {
+                    Content::OutputText(output_text) => {
+                        return Some(output_text.text.clone());
+                    }
+                    Content::Refusal(_) => {
+                        // Model refused to respond
+                        continue;
+                    }
+                }
+            }
+            None
         }
         // For other variants, we don't expect text content for categorization
         _ => None,
