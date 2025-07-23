@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Input } from "./ui/input";
 
 interface ClipContext {
   content_preview: string;
@@ -118,90 +128,77 @@ export const ClipToolbar: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-5">
-      <div className="bg-white rounded-lg shadow-lg p-5 max-w-md mx-auto">
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">
-          Add Context to Clip
-        </h2>
+    <div className="min-h-screen w-full overflow-hidden bg-gray-50 p-5 toolbar-container rounded-xl">
+      <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
+        {clipData.content_preview}
+      </div>
 
-        {/* Content Preview */}
-        <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
-          {clipData.content_preview}
-        </div>
-
-        {/* Category Input */}
-        <div className="mb-4">
-          <label
-            htmlFor="category"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Category
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              id="category"
-              type="text"
-              value={userCategory}
-              onChange={(e) => setUserCategory(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={clipData.suggested_category || "Enter category..."}
-              list="category-suggestions"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-            {clipData.suggested_category && (
-              <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
-                AI: {clipData.suggested_category}
-              </span>
-            )}
-          </div>
-          <datalist id="category-suggestions">
-            {categories.map((cat) => (
-              <option key={cat} value={cat} />
-            ))}
-          </datalist>
-        </div>
-
-        {/* Notes Input */}
-        <div className="mb-6">
-          <label
-            htmlFor="notes"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Notes (optional)
-          </label>
-          <textarea
-            id="notes"
-            value={userNotes}
-            onChange={(e) => setUserNotes(e.target.value)}
+      <div className="mb-4">
+        <label
+          htmlFor="category"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          Category
+        </label>
+        <div className="flex items-center gap-3">
+          <Input
+            id="category"
+            type="text"
+            value={userCategory}
+            onChange={(e) => setUserCategory(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add any additional context or notes..."
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-vertical"
+            placeholder={clipData.suggested_category || "Enter category..."}
+            list="category-suggestions"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           />
+          {clipData.suggested_category && (
+            <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
+              AI: {clipData.suggested_category}
+            </span>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleCancel}
-            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium border"
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button>
-        </div>
+        <Select value={userCategory} onValueChange={setUserCategory}>
+          <SelectTrigger className="w-40 h-8 border-0 bg-transparent">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>{" "}
+          <SelectContent>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-gray-700">
+          Notes (optional)
+        </label>
+        <Textarea
+          value={userNotes}
+          onChange={(e) => setUserNotes(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Add any additional context or notes..."
+          rows={3}
+          className="min-h-24 resize-none"
+        />
+      </div>
 
-        {/* Keyboard shortcuts hint */}
-        <div className="mt-3 text-xs text-gray-500 text-center">
-          Press Enter to save • Escape to cancel
-        </div>
+      <div className="flex items-center justify-between w-full pt-4 border-t">
+        <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </Button>
+      </div>
+      <div className="mt-3 text-xs text-gray-500 text-center">
+        Press Enter to save • Escape to cancel
       </div>
     </div>
   );
