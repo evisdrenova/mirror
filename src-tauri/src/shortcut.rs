@@ -179,10 +179,10 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
 
     // Create a small popup window
     let window =
-        WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("context.html".into()))
+        WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("toolbar.html".into()))
             .title("Add Context to Clip")
             .inner_size(400.0, 300.0)
-            .resizable(false)
+            .resizable(true)
             .center()
             .always_on_top(true)
             .skip_taskbar(true)

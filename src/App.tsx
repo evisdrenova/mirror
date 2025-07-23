@@ -13,6 +13,8 @@ export interface ClipItem {
     Image?: { data: number[]; width: number; height: number };
   };
   created_at: string;
+  category?: string;
+  notes?: string;
 }
 export default function App() {
   const [items, setItems] = useState<ClipItem[]>([]);
@@ -48,8 +50,28 @@ export default function App() {
   return (
     <div>
       <div className="mx-20">
-        <div>Mirror</div>
-        <DataTable columns={columns} data={items} />
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Mirror</h1>
+          <p className="text-gray-600 text-sm">
+            Clipboard manager with AI categorization
+          </p>
+        </div>
+
+        {isLoadingItems ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-gray-600">Loading clips...</div>
+          </div>
+        ) : (
+          <DataTable columns={columns} data={items} />
+        )}
+
+        {items.length === 0 && !isLoadingItems && (
+          <div className="text-center py-8 text-gray-500">
+            <p>
+              No clips yet. Copy something and press Cmd+Shift+S to get started!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
