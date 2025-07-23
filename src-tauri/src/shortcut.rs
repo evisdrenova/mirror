@@ -9,10 +9,10 @@ use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread, time::Duration};
-use tauri::{async_runtime, AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Clip {
     Text {
         plain: String,
@@ -26,6 +26,14 @@ pub enum Clip {
     // add in html
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ClipContext {
+    pub content_preview: String,
+    pub suggested_category: Option<String>,
+    pub user_category: Option<String>,
+    pub user_notes: Option<String>,
+}
+
 pub fn handle_shortcut(
     app_handle: &AppHandle,
     db_path: &PathBuf,
@@ -37,11 +45,11 @@ pub fn handle_shortcut(
     if shortcut == &sc {
         match event.state {
             ShortcutState::Pressed => {
-                println!("Meta+Shift+S Pressed!");
+                println!("shortcut pressed!");
                 handle_capture(app_handle, &db_path);
             }
             ShortcutState::Released => {
-                println!("Meta+Shift+S Released!");
+                println!("shortcut released!");
             }
         }
     }
@@ -55,6 +63,7 @@ pub fn shortcut_hotkey() -> Result<Shortcut, Box<dyn std::error::Error>> {
 #[cfg(target_os = "macos")]
 fn simulate_copy() {
     let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    // meta is the command on mac
     let _ = enigo.key(Key::Meta, Press);
     let _ = enigo.key(Key::Unicode('c'), Click);
     let _ = enigo.key(Key::Meta, Release);
@@ -64,18 +73,23 @@ pub fn handle_capture(app: &AppHandle, db_path: &PathBuf) {
     simulate_copy();
     thread::sleep(Duration::from_millis(120));
 
-    if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(100)) {
+    if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(50)) {
         debug_print_clip(&clip);
 
-        let app_handle = app.clone();
-        let conn_path = db_path.clone();
-
-        async_runtime::spawn(async move {
-            match save_clip(&app_handle, &conn_path, &clip).await {
-                Ok(()) => println!("Clip saved successfully"),
-                Err(e) => eprintln!("Failed to save clip: {}", e),
+        let content_preview = match &clip {
+            Clip::Text { plain } => {
+                if plain.len() > 100 {
+                    format!("{}...", &plain[..100])
+                } else {
+                    plain.clone()
+                }
             }
-        });
+            Clip::Image { width, height, .. } => {
+                format!("Image {}x{}", width, height)
+            }
+        };
+
+        launch_toolbar(app, db_path, clip, content_preview);
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
     }
@@ -152,22 +166,56 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
-async fn save_clip(
+fn launch_toolbar(app: &AppHandle, db_path: &PathBuf, clip: Clip, content_preview: String) {
+    // close any other pop up first
+    if let Some(existing_window) = app.get_webview_window("clip-context") {
+        existing_window.close().ok();
+    }
+
+    // Create a small popup window
+    let window =
+        WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("context.html".into()))
+            .title("Add Context to Clip")
+            .inner_size(400.0, 300.0)
+            .resizable(false)
+            .center()
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .build();
+
+    if let Ok(window) = window {
+        tauri::async_runtime::spawn(async move {
+            let suggested_category = llm::get_llm_category(&clip).await.ok();
+
+            let context = ClipContext {
+                content_preview,
+                suggested_category,
+                user_category: None,
+                user_notes: None,
+            };
+
+            // Send initial data to the popup window
+            if let Err(e) = window.emit("clip-data", &context) {
+                eprintln!("Failed to emit clip data: {}", e);
+            }
+        });
+    }
+}
+
+pub async fn save_clip(
     app_handle: &AppHandle,
     db_path: &PathBuf,
     clip: &Clip,
+    category: &str,
+    notes: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let category = llm::call_llm(clip).await.unwrap_or_else(|e| {
-        eprintln!("Failed to categorize clip: {}", e);
-        "uncategorized".to_string()
-    });
-
     let json_data = match clip {
         Clip::Text { plain } => {
             serde_json::json!({
                 "type": "text",
                 "content": plain,
-                "category": category
+                "category": category,
+                "notes": notes
             })
         }
         Clip::Image {
@@ -181,7 +229,8 @@ async fn save_clip(
                 "content": b64,
                 "width": width,
                 "height": height,
-                "category": category
+                "category": category,
+                "notes": notes
             })
         }
     };
@@ -189,11 +238,20 @@ async fn save_clip(
     let conn = Connection::open(db_path)?;
 
     conn.execute(
-        "INSERT INTO clips(clip, category) VALUES (?,?)",
-        params![json_data.to_string(), category],
+        "INSERT INTO clips(clip, category, notes) VALUES (?,?,?)",
+        params![json_data.to_string(), category, notes],
     )?;
 
     app_handle.emit("clip-saved", {}).unwrap();
 
     Ok(())
 }
+
+// pub async fn get_llm_category(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
+//     let category = llm::get_llm_category(clip).await.unwrap_or_else(|e| {
+//         eprintln!("Failed to categorize clip: {}", e);
+//         "uncategorized".to_string()
+//     });
+
+//     Ok(category)
+// }

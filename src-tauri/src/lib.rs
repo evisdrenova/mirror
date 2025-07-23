@@ -28,7 +28,7 @@ pub fn run() {
         )
         .setup(|app| {
             let db_path = database::init_database(app.app_handle().clone())?;
-
+            // save db path in app state
             app.manage(AppState {
                 db_path: db_path.clone(),
             });
@@ -38,7 +38,11 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![commands::get_items])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_items,
+            commands::submit_clip_context,
+            commands::cancel_clip_context
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -6,7 +6,7 @@ use async_openai::{
     Client,
 };
 
-pub async fn call_llm(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn get_llm_category(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
     let content = match clip {
