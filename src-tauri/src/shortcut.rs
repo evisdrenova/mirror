@@ -1,4 +1,4 @@
-use crate::AppState;
+use crate::llm;
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
 use enigo::{
@@ -9,18 +9,8 @@ use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread, time::Duration};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{async_runtime, AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
-
-use async_openai::{
-    types::responses::{
-        AllowedTools, CreateResponseArgs, Input, InputItem, InputMessageArgs, McpArgs,
-        RequireApproval, RequireApprovalPolicy, Role,
-        ToolDefinition::{Mcp, WebSearchPreview},
-        WebSearchPreviewArgs,
-    },
-    Client,
-};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Clip {
@@ -42,20 +32,13 @@ pub fn handle_shortcut(
     shortcut: &hotkey::HotKey,
     event: GlobalHotKeyEvent,
 ) {
-    let conn = Connection::open(&db_path)
-        .map_err(|e| {
-            eprintln!("Failed to open database: {e}");
-            return;
-        })
-        .unwrap();
-
     let sc = shortcut_hotkey().unwrap();
 
     if shortcut == &sc {
         match event.state {
             ShortcutState::Pressed => {
                 println!("Meta+Shift+S Pressed!");
-                handle_capture(app_handle, &conn);
+                handle_capture(app_handle, &db_path);
             }
             ShortcutState::Released => {
                 println!("Meta+Shift+S Released!");
@@ -77,17 +60,22 @@ fn simulate_copy() {
     let _ = enigo.key(Key::Meta, Release);
 }
 
-pub fn handle_capture(app: &AppHandle, conn: &Connection) {
+pub fn handle_capture(app: &AppHandle, db_path: &PathBuf) {
     simulate_copy();
-
     thread::sleep(Duration::from_millis(120));
 
     if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(100)) {
         debug_print_clip(&clip);
-        match save_clip(app, conn, &clip) {
-            Ok(()) => println!("Clip saved successfully"),
-            Err(e) => eprintln!("Failed to save clip: {}", e),
-        }
+
+        let app_handle = app.clone();
+        let conn_path = db_path.clone();
+
+        async_runtime::spawn(async move {
+            match save_clip(&app_handle, &conn_path, &clip).await {
+                Ok(()) => println!("Clip saved successfully"),
+                Err(e) => eprintln!("Failed to save clip: {}", e),
+            }
+        });
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
     }
@@ -164,16 +152,22 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
-fn save_clip(
+async fn save_clip(
     app_handle: &AppHandle,
-    conn: &Connection,
+    db_path: &PathBuf,
     clip: &Clip,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let category = llm::call_llm(clip).await.unwrap_or_else(|e| {
+        eprintln!("Failed to categorize clip: {}", e);
+        "uncategorized".to_string()
+    });
+
     let json_data = match clip {
         Clip::Text { plain } => {
             serde_json::json!({
                 "type": "text",
-                "content": plain
+                "content": plain,
+                "category": category
             })
         }
         Clip::Image {
@@ -182,17 +176,17 @@ fn save_clip(
             height,
         } => {
             let b64 = general_purpose::STANDARD.encode(data);
-            println!("{}", b64);
             serde_json::json!({
                 "type": "image",
                 "content": b64,
                 "width": width,
-                "height": height
+                "height": height,
+                "category": category
             })
         }
     };
 
-    let llm_response = call_llm(clip);
+    let conn = Connection::open(db_path)?;
 
     conn.execute(
         "INSERT INTO clips(clip) VALUES (?)",
@@ -202,118 +196,4 @@ fn save_clip(
     app_handle.emit("clip-saved", {}).unwrap();
 
     Ok(())
-}
-
-async fn call_llm(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
-    let client = Client::new();
-
-    println!("calling llm");
-
-    let request = CreateResponseArgs::default()
-        .max_output_tokens(512u32)
-        .model("gpt-4.1")
-        .input(Input::Items(vec![InputItem::Message(
-            InputMessageArgs::default()
-                .role(Role::User)
-                .content("How does TLS work in websites?")
-                .build()?,
-        )]))
-        .build()?;
-
-    println!("{}", serde_json::to_string(&request).unwrap());
-
-    let response = client.responses().create(request).await?;
-
-    for output in response.output {
-        println!("\nOutput: {:?}\n", output);
-    }
-
-    let res: &'static str = "test";
-
-    Ok(res.to_string())
-}
-
-#[derive(Debug, Serialize)]
-pub struct ClipItem {
-    id: i64,
-    clip: Clip,
-    created_at: String,
-}
-
-#[tauri::command]
-pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, String> {
-    println!("get_items called!");
-    let conn =
-        Connection::open(&state.db_path).map_err(|e| format!("Failed to open database: {e}"))?;
-
-    let mut stmt = conn
-        .prepare(
-            r#"
-        SELECT
-          id,
-          clip,
-          created_at
-        FROM clips
-        ORDER BY created_at DESC
-        "#,
-        )
-        .map_err(|e| format!("Failed to prepare statement: {e}"))?;
-
-    let clip_iter = stmt
-        .query_map([], |row| {
-            let id = row.get(0)?;
-            let clip_json: String = row.get(1)?;
-            let created_at: String = row.get(2)?;
-
-            let clip_value: serde_json::Value = serde_json::from_str(&clip_json).map_err(|e| {
-                rusqlite::Error::InvalidColumnType(
-                    0,
-                    "Invalid JSON".to_string(),
-                    rusqlite::types::Type::Text,
-                )
-            })?;
-
-            let clip = match clip_value["type"].as_str() {
-                Some("text") => Clip::Text {
-                    plain: clip_value["content"].as_str().unwrap_or("").to_string(),
-                },
-                Some("image") => {
-                    let base64_data = clip_value["content"].as_str().unwrap_or("");
-                    let data = general_purpose::STANDARD.decode(base64_data).map_err(|_| {
-                        rusqlite::Error::InvalidColumnType(
-                            0,
-                            "Invalid base64".to_string(),
-                            rusqlite::types::Type::Text,
-                        )
-                    })?;
-                    let width = clip_value["width"].as_u64().unwrap_or(0) as usize;
-                    let height = clip_value["height"].as_u64().unwrap_or(0) as usize;
-
-                    Clip::Image {
-                        data,
-                        width,
-                        height,
-                    }
-                }
-                _ => Clip::Text {
-                    plain: "Invalid clip type".to_string(),
-                },
-            };
-
-            Ok(ClipItem {
-                id,
-                clip,
-                created_at,
-            })
-        })
-        .map_err(|e| format!("Failed to execute query: {e}"))?;
-
-    let mut items = Vec::new();
-    for item in clip_iter {
-        items.push(item.map_err(|e| format!("Failed to process row: {e}"))?);
-    }
-
-    // println!("items {:?}", items);
-
-    Ok(items)
 }
