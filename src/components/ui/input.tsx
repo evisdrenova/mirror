@@ -1,7 +1,6 @@
 import * as React from "react";
 import { cn } from "@/src/lib/utils";
 
-// Creating the forwardRef component in a more explicit way
 const Input = React.forwardRef(function Input(
   props: React.InputHTMLAttributes<HTMLInputElement>,
   ref: React.ForwardedRef<HTMLInputElement>

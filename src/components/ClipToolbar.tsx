@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Check, X } from "lucide-react";
 import Spinner from "./Spinner";
-import { CategoryCombobox } from "./CategoryCombobox";
+import { CategoryInput } from "./CategoryCombobox";
 
 interface ClipContext {
   content_preview: string;
@@ -16,7 +16,6 @@ interface ClipContext {
 
 interface ClipMetadata {
   clip_json: string;
-  db_path: string;
 }
 
 export const ClipToolbar: React.FC = () => {
@@ -124,39 +123,39 @@ export const ClipToolbar: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-row items-center gap-2 px-1 toolbar-container ">
-      <CategoryCombobox
+      <CategoryInput
         value={userCategory}
-        onChange={(e) => setUserCategory(e)}
+        onChange={(e: string) => setUserCategory(e)}
         onKeyDown={handleKeyDown}
         placeholder={clipData.suggested_category || "Enter category..."}
         categories={categories}
+        aiSuggestion={clipData.suggested_category}
       />
       <Input
         value={userNotes}
         onChange={(e) => setUserNotes(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Add any additional context or notes..."
-        className="resize-none"
+        className="md:text-xs"
       />
-      <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
+      <Button
+        variant="ghost"
+        onClick={handleCancel}
+        disabled={isSaving}
+        size="sm"
+        className="hover:bg-gray-200"
+      >
         <X />
       </Button>
-      <Button onClick={handleSave} disabled={isSaving} variant="ghost">
+      <Button
+        onClick={handleSave}
+        disabled={isSaving}
+        variant="ghost"
+        className="hover:bg-gray-200"
+        size="sm"
+      >
         {isSaving ? <Spinner /> : <Check />}
       </Button>
     </div>
   );
 };
-
-{
-  /* <div className="bg-gray-100 rounded border-l-4 border-blue-500 p-3 mb-4 font-mono text-sm max-h-16 overflow-y-auto">
-        {clipData.content_preview}
-      </div> */
-}
-{
-  /* {clipData.suggested_category && (
-        <span className="text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
-          AI: {clipData.suggested_category}
-        </span>
-      )} */
-}
