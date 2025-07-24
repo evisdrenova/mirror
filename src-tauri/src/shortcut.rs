@@ -1,6 +1,7 @@
 use crate::llm;
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
+use core_graphics::event::{CGEvent, CGEventType};
 use enigo::{
     Direction::{Click, Press, Release},
     Enigo, Key, Keyboard, Settings,
@@ -9,7 +10,7 @@ use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread, time::Duration};
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -76,8 +77,9 @@ fn simulate_copy() {
 
 pub fn handle_capture(app: &AppHandle) {
     simulate_copy();
+    let cursor_pos = get_cursor_position();
+    println!("cursor pos {:?}", cursor_pos);
     thread::sleep(Duration::from_millis(120));
-
     if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(50)) {
         debug_print_clip(&clip);
 
@@ -94,7 +96,7 @@ pub fn handle_capture(app: &AppHandle) {
             }
         };
 
-        launch_toolbar(app, clip, content_preview);
+        launch_toolbar(app, clip, content_preview, cursor_pos);
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
     }
@@ -171,28 +173,127 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
-fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
-    // close any other pop up first
+// fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
+//     // close any other pop up first
+//     if let Some(existing_window) = app.get_webview_window("clip-toolbar") {
+//         existing_window.close().ok();
+//     }
+
+//     // Create a small popup window
+//     let window =
+//         WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("toolbar.html".into()))
+//             .title("Add Context to Clip")
+//             .inner_size(800.0, 45.0)
+//             .resizable(true)
+//             .center()
+//             .always_on_top(true)
+//             .skip_taskbar(true)
+//             .decorations(false)
+//             .transparent(true)
+//             .shadow(true)
+//             .build();
+
+//     if let Ok(window) = window {
+//         // Send clip metadata to the React component
+//         let metadata = ClipMetadata {
+//             clip_json: serde_json::to_string(&clip).unwrap(),
+//         };
+
+//         if let Err(e) = window.emit("clip-metadata", &metadata) {
+//             eprintln!("Failed to emit clip metadata: {}", e);
+//         }
+
+//         // Get AI suggestion in background
+//         tauri::async_runtime::spawn(async move {
+//             let suggested_category = llm::get_llm_category(&clip).await.ok();
+
+//             let context = ClipContext {
+//                 content_preview,
+//                 suggested_category,
+//                 user_category: None,
+//                 user_notes: None,
+//             };
+
+//             // Send AI suggestion to the React component
+//             if let Err(e) = window.emit("clip-data", &context) {
+//                 eprintln!("Failed to emit clip data: {}", e);
+//             }
+//         });
+//     }
+// }
+
+fn launch_toolbar(
+    app: &AppHandle,
+    clip: Clip,
+    content_preview: String,
+    cursor_pos: Option<(f64, f64)>,
+) {
+    // Close any existing popup
     if let Some(existing_window) = app.get_webview_window("clip-toolbar") {
         existing_window.close().ok();
     }
 
-    // Create a small popup window
     let window =
         WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("toolbar.html".into()))
             .title("Add Context to Clip")
             .inner_size(800.0, 45.0)
             .resizable(true)
-            .center()
             .always_on_top(true)
             .skip_taskbar(true)
             .decorations(false)
             .transparent(true)
             .shadow(true)
+            .visible(false)
             .build();
 
     if let Ok(window) = window {
-        // Send clip metadata to the React component
+        // Position window based on cursor location
+        let window_clone = window.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Some((cursor_x, cursor_y)) = cursor_pos {
+                // Position window below and slightly to the right of cursor
+                let window_x = cursor_x + 15.0; // Small offset to avoid covering cursor
+                let window_y = cursor_y + 25.0; // Position below cursor/selected text
+
+                // Ensure window stays on screen
+                if let Ok(Some(monitor)) = window_clone.current_monitor() {
+                    let monitor_size = monitor.size();
+                    let monitor_pos = monitor.position();
+
+                    // Window dimensions (f64 for calculations)
+                    let window_width = 400.0;
+                    let window_height = 200.0;
+
+                    // Calculate screen bounds (convert to f64)
+                    let max_x = monitor_pos.x as f64 + monitor_size.width as f64 - window_width;
+                    let max_y = monitor_pos.y as f64 + monitor_size.height as f64 - window_height;
+
+                    // Clamp to screen bounds
+                    let final_x = window_x.min(max_x).max(monitor_pos.x as f64);
+                    let final_y = window_y.min(max_y).max(monitor_pos.y as f64);
+
+                    println!("Positioning window at: ({}, {})", final_x, final_y);
+
+                    let logical_pos = LogicalPosition::new(final_x, final_y);
+                    if let Err(e) = window_clone.set_position(logical_pos) {
+                        eprintln!("Failed to set window position: {}", e);
+                    }
+                } else {
+                    // Fallback positioning if monitor detection fails
+                    let logical_pos = LogicalPosition::new(window_x, window_y);
+                    window_clone.set_position(logical_pos);
+                }
+            } else {
+                // Fallback to center if cursor detection fails
+                println!("Could not get cursor position, centering window");
+                window_clone.center();
+            }
+
+            // Show window after positioning
+            window_clone.show();
+        });
+
+        // Send clip metadata to React component
         let metadata = ClipMetadata {
             clip_json: serde_json::to_string(&clip).unwrap(),
         };
@@ -212,7 +313,6 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, content_preview: String) {
                 user_notes: None,
             };
 
-            // Send AI suggestion to the React component
             if let Err(e) = window.emit("clip-data", &context) {
                 eprintln!("Failed to emit clip data: {}", e);
             }
@@ -265,11 +365,14 @@ pub async fn save_clip(
     Ok(())
 }
 
-// pub async fn get_llm_category(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
-//     let category = llm::get_llm_category(clip).await.unwrap_or_else(|e| {
-//         eprintln!("Failed to categorize clip: {}", e);
-//         "uncategorized".to_string()
-//     });
+#[cfg(target_os = "macos")]
+pub fn get_cursor_position() -> Option<(f64, f64)> {
+    use core_graphics::event::CGEvent;
+    use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 
-//     Ok(category)
-// }
+    // Convert Result -> Option with .ok() and early-return None with ?
+    let source = CGEventSource::new(CGEventSourceStateID::HIDSystemState).ok()?;
+    let event = CGEvent::new(source).ok()?; // CGEvent::new returns Option<CGEvent>
+    let loc = event.location();
+    Some((loc.x, loc.y))
+}

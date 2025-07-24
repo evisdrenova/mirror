@@ -28,20 +28,18 @@ export const ClipToolbar: React.FC = () => {
 
   // Predefined categories for the dropdown
   const categories = [
-    "code_snippet",
+    "code",
     "technical_advice",
     "documentation",
     "url",
-    "credentials",
-    "data",
     "communication",
     "notes",
     "reference",
     "creative",
     "business",
+    "quotes",
     "academic",
-    "error_log",
-    "command",
+    "errors",
     "other",
   ];
 
