@@ -1,4 +1,4 @@
-use crate::{llm, AppState};
+use crate::llm;
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
 use core_graphics::event::CGEvent;
