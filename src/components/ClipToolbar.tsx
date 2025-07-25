@@ -16,66 +16,64 @@ interface ClipMetadata {
   clip_json: string;
 }
 
+const categories = [
+  "code",
+  "technical_advice",
+  "documentation",
+  "url",
+  "communication",
+  "notes",
+  "reference",
+  "creative",
+  "business",
+  "quotes",
+  "academic",
+  "errors",
+  "other",
+];
+
 export const ClipToolbar: React.FC = () => {
   const [clipData, setClipData] = useState<ClipContext | null>(null);
   const [clipMetadata, setClipMetadata] = useState<ClipMetadata | null>(null);
   const [userCategory, setUserCategory] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingAI, setIsLoadingAI] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Predefined categories for the dropdown
-  const categories = [
-    "code",
-    "technical_advice",
-    "documentation",
-    "url",
-    "communication",
-    "notes",
-    "reference",
-    "creative",
-    "business",
-    "quotes",
-    "academic",
-    "errors",
-    "other",
-  ];
 
   useEffect(() => {
     // Listen for clip metadata
     const unlistenMetadata = listen<ClipMetadata>("clip-metadata", (event) => {
+      console.log("Received clip metadata:", event.payload);
       setClipMetadata(event.payload);
     });
 
     // Listen for clip data with AI suggestion
     const unlistenData = listen<ClipContext>("clip-data", (event) => {
+      console.log("Received clip data:", event.payload);
       setClipData(event.payload);
-      setIsLoading(false);
+      setIsLoadingAI(false); // AI suggestion process complete
 
-      console.log("the event payload", event.payload.suggested_category);
-
-      // Auto-fill category placeholder with AI suggestion
+      // Auto-fill category with AI suggestion
       if (event.payload.suggested_category && !userCategory) {
-        setUserCategory("");
+        setUserCategory(event.payload.suggested_category); // Fixed: actually set the suggestion
       }
     });
-
-    // Auto-focus category input when component mounts
-    const categoryInput = document.getElementById(
-      "category"
-    ) as HTMLInputElement;
-    if (categoryInput) {
-      categoryInput.focus();
-    }
 
     return () => {
       unlistenMetadata.then((fn) => fn());
       unlistenData.then((fn) => fn());
     };
-  }, [userCategory]);
+  }, []); // Removed userCategory dependency
 
   const handleSave = async () => {
+    console.log("handleSave called with:", {
+      clipMetadata,
+      userCategory,
+      clipData,
+    });
+
     if (!clipMetadata) {
       console.error("No clip metadata available");
+      console.error("Current state:", { clipMetadata, clipData });
       return;
     }
 
@@ -97,11 +95,13 @@ export const ClipToolbar: React.FC = () => {
     }
   };
 
-  const handleCancel = () => {
-    console.log("close window");
-    window.close();
+  const handleCancel = async () => {
+    try {
+      await invoke("close_toolbar_window");
+    } catch (error) {
+      console.error("Failed to close window:", error);
+    }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -111,24 +111,18 @@ export const ClipToolbar: React.FC = () => {
     }
   };
 
-  if (isLoading || !clipData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-gray-600">Loading preview...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen w-full flex flex-row items-center gap-2 px-1 toolbar-container ">
+    <div className="min-h-screen w-full flex flex-row items-center gap-2 px-1 toolbar-container">
       <CategoryInput
         value={userCategory}
         onChange={(e: string) => setUserCategory(e)}
         onKeyDown={handleKeyDown}
-        placeholder={clipData.suggested_category || "Enter category..."}
+        placeholder={clipData?.suggested_category || "Enter category..."}
         categories={categories}
-        aiSuggestion={clipData.suggested_category}
+        aiSuggestion={clipData?.suggested_category}
+        isLoadingAiCategory={isLoadingAI}
       />
+
       <Button
         variant="ghost"
         onClick={handleCancel}

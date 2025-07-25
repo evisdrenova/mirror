@@ -23,7 +23,7 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
     let mut stmt = conn
         .prepare(
             r#"
-            
+
         SELECT
           id,
           clip,
@@ -117,5 +117,13 @@ pub async fn submit_clip(
         window.close().ok();
     }
 
+    Ok(())
+}
+
+#[tauri::command]
+pub fn close_toolbar_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("clip-toolbar") {
+        window.close().map_err(|e| e.to_string())?;
+    }
     Ok(())
 }

@@ -22,7 +22,6 @@ export default function App() {
   const getItems = async () => {
     setIsLoadingItems(true);
     try {
-      
       const items = await invoke<ClipItem[]>("get_items");
       console.log("items", items);
       setItems(items);

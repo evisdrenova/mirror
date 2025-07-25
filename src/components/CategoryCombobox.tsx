@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "./ui/input";
+import { Sparkles } from "lucide-react";
+import Spinner from "./Spinner";
 
 interface CategoryInputProps {
   value: string;
@@ -9,6 +11,7 @@ interface CategoryInputProps {
   categories: string[];
   aiSuggestion?: string;
   className?: string;
+  isLoadingAiCategory: boolean;
 }
 
 export const CategoryInput: React.FC<CategoryInputProps> = ({
@@ -19,9 +22,11 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
   categories,
   aiSuggestion,
   className = "",
+  isLoadingAiCategory,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showInput, setShowInput] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Initialize with AI suggestion when it arrives
@@ -39,6 +44,15 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
       setInputValue(value);
     }
   }, [value]);
+
+  // Show input when there's no AI suggestion, or when user wants to edit
+  useEffect(() => {
+    if (!aiSuggestion || inputValue !== aiSuggestion) {
+      setShowInput(true);
+    } else {
+      setShowInput(false);
+    }
+  }, [aiSuggestion, inputValue]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -63,6 +77,13 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
       }
     }
 
+    // Handle Escape to go back to badge view
+    if (e.key === "Escape" && aiSuggestion && inputValue === aiSuggestion) {
+      setShowInput(false);
+      inputRef.current?.blur();
+      return;
+    }
+
     // Pass other key events to parent
     if (onKeyDown) {
       onKeyDown(e);
@@ -74,6 +95,21 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
     e.target.select();
   };
 
+  const handleBadgeClick = () => {
+    setShowInput(true);
+    // Focus input on next tick
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  const handleInputBlur = () => {
+    // If user didn't change the value and we have an AI suggestion, show badge
+    if (aiSuggestion && inputValue === aiSuggestion) {
+      setShowInput(false);
+    }
+  };
+
   // Find current autocomplete suggestion
   const autocompleteSuggestion = inputValue
     ? categories.find(
@@ -82,6 +118,24 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
           cat.toLowerCase() !== inputValue.toLowerCase()
       )
     : null;
+
+  // Show badge when we have AI suggestion and user hasn't modified it
+  const shouldShowBadge =
+    aiSuggestion && inputValue === aiSuggestion && !showInput;
+
+  if (shouldShowBadge) {
+    return (
+      <div className={`${className}`}>
+        <button
+          onClick={handleBadgeClick}
+          className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-gray-100  rounded-md transition-colors text-sm cursor-pointer"
+        >
+          <Sparkles size={14} className="text-gray-100" />
+          {isLoadingAiCategory ? <Spinner /> : <span>{aiSuggestion}</span>}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative ${className}`}>
@@ -102,6 +156,7 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
+          onBlur={handleInputBlur}
           placeholder={placeholder}
           style={{ zIndex: 2 }}
           className="md:text-xs"
