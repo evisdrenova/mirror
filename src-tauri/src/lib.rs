@@ -22,7 +22,7 @@ pub fn run() {
                 .with_handler(move |app, shortcut, event| {
                     let state = app.state::<AppState>();
                     let app_handle = app.app_handle();
-                    shortcut::handle_shortcut(app_handle, &state.db_path, shortcut, event);
+                    shortcut::handle_shortcut(app_handle, shortcut, event);
                 })
                 .build(),
         )

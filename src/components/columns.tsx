@@ -54,18 +54,4 @@ export const columns: ColumnDef<ClipItem>[] = [
       );
     },
   },
-  {
-    accessorKey: "notes",
-    header: "Notes",
-
-    cell: ({ row }) => {
-      return (
-        <div className="flex space-x-2">
-          <span className="max-w-[500px] truncate font-medium">
-            {row.getValue("notes")}
-          </span>
-        </div>
-      );
-    },
-  },
 ];

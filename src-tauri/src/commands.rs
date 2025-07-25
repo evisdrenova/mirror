@@ -12,7 +12,6 @@ pub struct ClipItem {
     clip: Clip,
     created_at: String,
     category: Option<String>,
-    notes: Option<String>,
 }
 
 #[tauri::command]
@@ -26,10 +25,9 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
             r#"
         SELECT
           id,
-          clip,
+          clip,s
           created_at,
           category,
-          notes
         FROM clips
         ORDER BY created_at DESC
         "#,
@@ -42,7 +40,6 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
             let clip_json: String = row.get(1)?;
             let created_at: String = row.get(2)?;
             let category: Option<String> = row.get(3).ok();
-            let notes: Option<String> = row.get(4).ok();
 
             let clip_value: serde_json::Value = serde_json::from_str(&clip_json).map_err(|e| {
                 rusqlite::Error::InvalidColumnType(
@@ -84,7 +81,6 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
                 clip,
                 created_at,
                 category,
-                notes,
             })
         })
         .map_err(|e| format!("Failed to execute query: {e}"))?;
@@ -102,17 +98,16 @@ pub async fn submit_clip(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
     user_category: String,
-    user_notes: Option<String>,
     clip_json: String,
 ) -> Result<(), String> {
     let db_path = &state.db_path;
 
+    println!("trying to save clip in back");
+
     let clip: Clip = serde_json::from_str(&clip_json)
         .map_err(|e| format!("Failed to deserialize clip: {}", e))?;
 
-    let final_notes = user_notes.filter(|n| !n.trim().is_empty());
-
-    save_clip(&app_handle, db_path, &clip, &user_category, final_notes)
+    save_clip(&app_handle, db_path, &clip, &user_category)
         .await
         .map_err(|e| format!("Failed to save clip: {}", e))?;
 

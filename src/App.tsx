@@ -14,7 +14,6 @@ export interface ClipItem {
   };
   created_at: string;
   category?: string;
-  notes?: string;
 }
 export default function App() {
   const [items, setItems] = useState<ClipItem[]>([]);

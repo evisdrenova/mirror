@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { Check, X } from "lucide-react";
 import Spinner from "./Spinner";
 import { CategoryInput } from "./CategoryCombobox";
@@ -11,7 +10,6 @@ interface ClipContext {
   content_preview: string;
   suggested_category?: string;
   user_category?: string;
-  user_notes?: string;
 }
 
 interface ClipMetadata {
@@ -22,7 +20,6 @@ export const ClipToolbar: React.FC = () => {
   const [clipData, setClipData] = useState<ClipContext | null>(null);
   const [clipMetadata, setClipMetadata] = useState<ClipMetadata | null>(null);
   const [userCategory, setUserCategory] = useState("");
-  const [userNotes, setUserNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -82,12 +79,12 @@ export const ClipToolbar: React.FC = () => {
 
     setIsSaving(true);
     try {
+      console.log("trying to save clip");
       await invoke("submit_clip", {
         userCategory:
           userCategory.trim() ||
           clipData?.suggested_category ||
           "uncategorized",
-        userNotes: userNotes.trim() || null,
         clipJson: clipMetadata.clip_json,
       });
     } catch (error) {
@@ -99,6 +96,7 @@ export const ClipToolbar: React.FC = () => {
   };
 
   const handleCancel = () => {
+    console.log("close window");
     window.close();
   };
 
@@ -128,13 +126,6 @@ export const ClipToolbar: React.FC = () => {
         placeholder={clipData.suggested_category || "Enter category..."}
         categories={categories}
         aiSuggestion={clipData.suggested_category}
-      />
-      <Input
-        value={userNotes}
-        onChange={(e) => setUserNotes(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Add any additional context or notes..."
-        className="md:text-xs"
       />
       <Button
         variant="ghost"
