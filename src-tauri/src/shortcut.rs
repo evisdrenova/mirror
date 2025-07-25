@@ -11,7 +11,9 @@ use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread, time::Duration};
-use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -176,6 +178,18 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
             .build();
 
     if let Ok(window) = window {
+        let window_for_focus = window.clone();
+        window.on_window_event(move |event| {
+            match event {
+                WindowEvent::Focused(false) => {
+                    // Window lost focus - close it
+                    println!("Toolbar lost focus, closing...");
+                    window_for_focus.close().ok();
+                }
+                _ => {}
+            }
+        });
+
         // Position window based on cursor location
         let window_clone = window.clone();
         tauri::async_runtime::spawn(async move {
