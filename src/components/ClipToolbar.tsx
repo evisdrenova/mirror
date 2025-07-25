@@ -51,6 +51,8 @@ export const ClipToolbar: React.FC = () => {
       setClipData(event.payload);
       setIsLoading(false);
 
+      console.log("the event payload", event.payload.suggested_category);
+
       // Auto-fill category placeholder with AI suggestion
       if (event.payload.suggested_category && !userCategory) {
         setUserCategory("");

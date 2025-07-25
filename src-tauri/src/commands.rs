@@ -23,11 +23,12 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
     let mut stmt = conn
         .prepare(
             r#"
+            
         SELECT
           id,
-          clip,s
+          clip,
           created_at,
-          category,
+          category
         FROM clips
         ORDER BY created_at DESC
         "#,
