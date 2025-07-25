@@ -1,4 +1,5 @@
 use rusqlite::Connection;
+use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -16,6 +17,28 @@ pub fn init_database(app_handle: AppHandle) -> AppResult<std::path::PathBuf> {
             return Err(Box::new(Error::new(ErrorKind::NotFound, error_msg)));
         }
     };
+
+    if !app_data_dir.exists() {
+        println!(
+            "App data directory doesn't exist, creating: {:?}",
+            app_data_dir
+        );
+        if let Err(e) = fs::create_dir_all(&app_data_dir) {
+            let error_msg = format!("Failed to create app data directory: {}", e);
+            eprintln!("{}", error_msg);
+            return Err(Box::new(Error::new(ErrorKind::PermissionDenied, error_msg)));
+        }
+        println!("Created app data directory: {:?}", app_data_dir);
+    }
+
+    let db_path: PathBuf = app_data_dir.join("mirror.db");
+    let db_exists = db_path.exists();
+
+    if !db_exists {
+        println!("Database doesn't exist, will be created at: {:?}", db_path);
+    } else {
+        println!("Database already exists at: {:?}", db_path);
+    }
 
     let db_path: PathBuf = app_data_dir.join("mirror.db");
 
