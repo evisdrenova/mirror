@@ -1,4 +1,4 @@
-use crate::llm;
+use crate::{llm, AppState};
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
 use core_graphics::event::CGEvent;
@@ -26,6 +26,12 @@ pub enum Clip {
     },
     // add in rich text format
     // add in html
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ClipContext {
+    pub suggested_category: Option<String>,
+    pub clip: Clip,
 }
 
 pub fn handle_shortcut(
@@ -147,6 +153,7 @@ fn debug_print_clip(clip: &Clip) {
 
 fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
     let clip_for_llm = clip.clone();
+    let clip_for_emit = clip.clone();
     // start async llm call right away
     let llm_future =
         tauri::async_runtime::spawn(async move { llm::get_llm_category(&clip_for_llm).await.ok() });
@@ -221,7 +228,12 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
                 }
             };
 
-            if let Err(e) = window.emit("clip-data", &suggested_category) {
+            let clip_context = ClipContext {
+                suggested_category,
+                clip: clip_for_emit,
+            };
+
+            if let Err(e) = window.emit("clip-data", &clip_context) {
                 eprintln!("Failed to emit clip data: {}", e);
             }
         });

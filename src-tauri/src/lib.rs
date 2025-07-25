@@ -20,7 +20,6 @@ pub fn run() {
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
-                    let state = app.state::<AppState>();
                     let app_handle = app.app_handle();
                     shortcut::handle_shortcut(app_handle, shortcut, event);
                 })

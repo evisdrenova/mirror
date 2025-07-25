@@ -7,13 +7,11 @@ import Spinner from "./Spinner";
 import { CategoryInput } from "./CategoryCombobox";
 
 interface ClipContext {
-  content_preview: string;
   suggested_category?: string;
-  user_category?: string;
-}
-
-interface ClipMetadata {
-  clip_json: string;
+  clip: {
+    Text?: { plain: string };
+    Image?: { data: number[]; width: number; height: number };
+  };
 }
 
 const categories = [
@@ -34,58 +32,36 @@ const categories = [
 
 export const ClipToolbar: React.FC = () => {
   const [clipData, setClipData] = useState<ClipContext | null>(null);
-  const [clipMetadata, setClipMetadata] = useState<ClipMetadata | null>(null);
   const [userCategory, setUserCategory] = useState("");
   const [isLoadingAI, setIsLoadingAI] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Listen for clip metadata
-    const unlistenMetadata = listen<ClipMetadata>("clip-metadata", (event) => {
-      console.log("Received clip metadata:", event.payload);
-      setClipMetadata(event.payload);
-    });
-
-    // Listen for clip data with AI suggestion
+    // get ai category suggestion
     const unlistenData = listen<ClipContext>("clip-data", (event) => {
-      console.log("Received clip data:", event.payload);
       setClipData(event.payload);
-      setIsLoadingAI(false); // AI suggestion process complete
+      setIsLoadingAI(false);
 
       // Auto-fill category with AI suggestion
       if (event.payload.suggested_category && !userCategory) {
-        setUserCategory(event.payload.suggested_category); // Fixed: actually set the suggestion
+        setUserCategory(event.payload.suggested_category);
       }
     });
 
     return () => {
-      unlistenMetadata.then((fn) => fn());
       unlistenData.then((fn) => fn());
     };
-  }, []); // Removed userCategory dependency
+  }, []);
 
   const handleSave = async () => {
-    console.log("handleSave called with:", {
-      clipMetadata,
-      userCategory,
-      clipData,
-    });
-
-    if (!clipMetadata) {
-      console.error("No clip metadata available");
-      console.error("Current state:", { clipMetadata, clipData });
-      return;
-    }
-
     setIsSaving(true);
     try {
-      console.log("trying to save clip");
       await invoke("submit_clip", {
         userCategory:
           userCategory.trim() ||
           clipData?.suggested_category ||
           "uncategorized",
-        clipJson: clipMetadata.clip_json,
+        clipJson: clipData?.clip,
       });
     } catch (error) {
       console.error("Failed to save clip:", error);
@@ -134,7 +110,7 @@ export const ClipToolbar: React.FC = () => {
       </Button>
       <Button
         onClick={handleSave}
-        disabled={isSaving}
+        disabled={isSaving || isLoadingAI}
         variant="ghost"
         className="hover:bg-gray-200"
         size="sm"
