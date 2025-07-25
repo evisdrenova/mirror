@@ -28,18 +28,6 @@ pub enum Clip {
     // add in html
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ClipMetadata {
-    pub clip_json: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ClipContext {
-    pub content_preview: String,
-    pub suggested_category: Option<String>,
-    pub user_category: Option<String>,
-}
-
 pub fn handle_shortcut(
     app_handle: &AppHandle,
     shortcut: &hotkey::HotKey,
@@ -80,20 +68,7 @@ pub fn handle_capture(app: &AppHandle) {
     if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(50)) {
         debug_print_clip(&clip);
 
-        let content_preview = match &clip {
-            Clip::Text { plain } => {
-                if plain.len() > 100 {
-                    format!("{}...", &plain[..100])
-                } else {
-                    plain.clone()
-                }
-            }
-            Clip::Image { width, height, .. } => {
-                format!("Image {}x{}", width, height)
-            }
-        };
-
-        launch_toolbar(app, clip, content_preview, cursor_pos);
+        launch_toolbar(app, clip, cursor_pos);
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
     }
@@ -170,12 +145,12 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
-fn launch_toolbar(
-    app: &AppHandle,
-    clip: Clip,
-    content_preview: String,
-    cursor_pos: Option<(f64, f64)>,
-) {
+fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
+    let clip_for_llm = clip.clone();
+    // start async llm call right away
+    let llm_future =
+        tauri::async_runtime::spawn(async move { llm::get_llm_category(&clip_for_llm).await.ok() });
+
     if let Some(existing_window) = app.get_webview_window("clip-toolbar") {
         existing_window.close().ok();
     }
@@ -237,24 +212,16 @@ fn launch_toolbar(
 
             let _ = window_clone.show();
         });
-
-        let metadata = ClipMetadata {
-            clip_json: serde_json::to_string(&clip).unwrap(),
-        };
-
-        if let Err(e) = window.emit("clip-metadata", &metadata) {
-            eprintln!("Failed to emit clip metadata: {}", e);
-        }
         tauri::async_runtime::spawn(async move {
-            let suggested_category = llm::get_llm_category(&clip).await.ok();
-
-            let context = ClipContext {
-                content_preview,
-                suggested_category,
-                user_category: None,
+            let suggested_category = match llm_future.await {
+                Ok(result) => result,
+                Err(e) => {
+                    eprintln!("LLM task failed: {}", e);
+                    None
+                }
             };
 
-            if let Err(e) = window.emit("clip-data", &context) {
+            if let Err(e) = window.emit("clip-data", &suggested_category) {
                 eprintln!("Failed to emit clip data: {}", e);
             }
         });
