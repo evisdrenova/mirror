@@ -11,7 +11,6 @@ interface CategoryInputProps {
   categories: string[];
   aiSuggestion?: string;
   className?: string;
-  isLoadingAiCategory: boolean;
 }
 
 export const CategoryInput: React.FC<CategoryInputProps> = ({
@@ -22,7 +21,6 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
   categories,
   aiSuggestion,
   className = "",
-  isLoadingAiCategory,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -47,7 +45,9 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
 
   // Show input when there's no AI suggestion, or when user wants to edit
   useEffect(() => {
-    if (!aiSuggestion || inputValue !== aiSuggestion) {
+    if (!aiSuggestion && !inputValue) {
+      setShowInput(false);
+    } else if (inputValue !== aiSuggestion) {
       setShowInput(true);
     } else {
       setShowInput(false);
@@ -110,7 +110,6 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
     }
   };
 
-  // Find current autocomplete suggestion
   const autocompleteSuggestion = inputValue
     ? categories.find(
         (cat) =>
@@ -119,49 +118,90 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
       )
     : null;
 
-  // Show badge when we have AI suggestion and user hasn't modified it
-  const shouldShowBadge =
-    aiSuggestion && inputValue === aiSuggestion && !showInput;
-
-  if (shouldShowBadge) {
-    return (
-      <div className={`${className}`}>
-        <button
-          onClick={handleBadgeClick}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-gray-100  rounded-md transition-colors text-sm cursor-pointer"
-        >
-          <Sparkles size={14} className="text-gray-100" />
-          {isLoadingAiCategory ? <Spinner /> : <span>{aiSuggestion}</span>}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className={`relative ${className}`}>
-      <div className="relative">
-        {autocompleteSuggestion && (
-          <div
-            className="absolute inset-0 px-3 py-2 text-sm text-gray-400 pointer-events-none bg-transparent border border-transparent rounded-md"
-            style={{ zIndex: 1 }}
+      {!showInput ? (
+        <div className={`${className}`}>
+          <button
+            onClick={handleBadgeClick}
+            disabled={!aiSuggestion}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-gray-100  rounded-md transition-colors text-sm cursor-pointer"
           >
-            <span className="invisible">{inputValue}</span>
-            <span>{autocompleteSuggestion.slice(inputValue.length)}</span>
-          </div>
-        )}
-        <Input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={handleInputBlur}
-          placeholder={placeholder}
-          style={{ zIndex: 2 }}
-          className="md:text-xs"
-        />
-      </div>
+            <Sparkles size={14} className="text-gray-100" />
+            {aiSuggestion ? (
+              <span>{aiSuggestion}</span>
+            ) : (
+              <Spinner className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          {autocompleteSuggestion && (
+            <div
+              className="absolute inset-0 px-3 py-2 text-sm text-gray-400 pointer-events-none bg-transparent border border-transparent rounded-md"
+              style={{ zIndex: 1 }}
+            >
+              <span className="invisible">{inputValue}</span>
+              <span>{autocompleteSuggestion.slice(inputValue.length)}</span>
+            </div>
+          )}
+          <Input
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            onBlur={handleInputBlur}
+            placeholder={placeholder}
+            style={{ zIndex: 2 }}
+            className="md:text-xs"
+          />
+        </div>
+      )}
     </div>
   );
+
+  //   if (shouldShowBadge) {
+  //     return (
+  //       <div className={`${className}`}>
+  //         <button
+  //           onClick={handleBadgeClick}
+  //           className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-gray-100  rounded-md transition-colors text-sm cursor-pointer"
+  //         >
+  //           <Sparkles size={14} className="text-gray-100" />
+  //           {aiSuggestion ? <Spinner /> : <span>{aiSuggestion}</span>}
+  //         </button>
+  //       </div>
+  //     );
+  //   }
+
+  //   return (
+  //     <div className={`relative ${className}`}>
+  //       <div className="relative">
+  //         {autocompleteSuggestion && (
+  //           <div
+  //             className="absolute inset-0 px-3 py-2 text-sm text-gray-400 pointer-events-none bg-transparent border border-transparent rounded-md"
+  //             style={{ zIndex: 1 }}
+  //           >
+  //             <span className="invisible">{inputValue}</span>
+  //             <span>{autocompleteSuggestion.slice(inputValue.length)}</span>
+  //           </div>
+  //         )}
+  //         <Input
+  //           ref={inputRef}
+  //           type="text"
+  //           value={inputValue}
+  //           onChange={handleInputChange}
+  //           onKeyDown={handleKeyDown}
+  //           onFocus={handleFocus}
+  //           onBlur={handleInputBlur}
+  //           placeholder={placeholder}
+  //           style={{ zIndex: 2 }}
+  //           className="md:text-xs"
+  //         />
+  //       </div>
+  //     </div>
+  //   );
 };

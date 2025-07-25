@@ -33,16 +33,14 @@ const categories = [
 export const ClipToolbar: React.FC = () => {
   const [clipData, setClipData] = useState<ClipContext | null>(null);
   const [userCategory, setUserCategory] = useState("");
-  const [isLoadingAI, setIsLoadingAI] = useState(true);
+  const [isLoadingClipData, setIsLoadingClipData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // get ai category suggestion
     const unlistenData = listen<ClipContext>("clip-data", (event) => {
       setClipData(event.payload);
-      setIsLoadingAI(false);
+      setIsLoadingClipData(false);
 
-      // Auto-fill category with AI suggestion
       if (event.payload.suggested_category && !userCategory) {
         setUserCategory(event.payload.suggested_category);
       }
@@ -61,7 +59,7 @@ export const ClipToolbar: React.FC = () => {
           userCategory.trim() ||
           clipData?.suggested_category ||
           "uncategorized",
-        clipJson: clipData?.clip,
+        clipJson: JSON.stringify(clipData?.clip),
       });
     } catch (error) {
       console.error("Failed to save clip:", error);
@@ -96,7 +94,6 @@ export const ClipToolbar: React.FC = () => {
         placeholder={clipData?.suggested_category || "Enter category..."}
         categories={categories}
         aiSuggestion={clipData?.suggested_category}
-        isLoadingAiCategory={isLoadingAI}
       />
 
       <Button
@@ -110,7 +107,7 @@ export const ClipToolbar: React.FC = () => {
       </Button>
       <Button
         onClick={handleSave}
-        disabled={isSaving || isLoadingAI}
+        disabled={isSaving || isLoadingClipData}
         variant="ghost"
         className="hover:bg-gray-200"
         size="sm"
