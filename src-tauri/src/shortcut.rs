@@ -175,9 +175,14 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
             .transparent(true)
             .shadow(true)
             .visible(false)
+            .focused(false)
             .build();
 
     if let Ok(window) = window {
+        if let Some(main_window) = app.get_webview_window("main") {
+            main_window.hide().ok();
+        }
+
         let window_for_focus = window.clone();
         window.on_window_event(move |event| {
             match event {
@@ -224,15 +229,18 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
                 } else {
                     // Fallback positioning if monitor detection fails
                     let logical_pos = LogicalPosition::new(window_x, window_y);
-                    let _ = window_clone.set_position(logical_pos);
+                    window_clone.set_position(logical_pos).ok();
                 }
             } else {
                 println!("Could not get cursor position, centering window");
-                let _ = window_clone.center();
+                window_clone.center().ok();
             }
 
-            let _ = window_clone.show();
+            // Show and focus only the popup window
+            window_clone.show().ok();
+            window_clone.set_focus().ok();
         });
+
         tauri::async_runtime::spawn(async move {
             let suggested_category = match llm_future.await {
                 Ok(result) => result,
