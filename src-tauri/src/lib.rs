@@ -26,6 +26,8 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            // let _ = dotenvy::dotenv();
+
             let db_path = database::init_database(app.app_handle().clone())?;
             // save db path in app state
             app.manage(AppState {

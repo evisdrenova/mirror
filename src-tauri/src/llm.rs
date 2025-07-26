@@ -96,7 +96,6 @@ fn extract_content_from_output(output: &OutputContent) -> Option<String> {
 
     match output {
         OutputContent::Message(message) => {
-            // Extract text from the content array
             for content_item in &message.content {
                 match content_item {
                     Content::OutputText(output_text) => {
@@ -110,7 +109,6 @@ fn extract_content_from_output(output: &OutputContent) -> Option<String> {
             }
             None
         }
-        // For other variants, we don't expect text content for categorization
         _ => None,
     }
 }

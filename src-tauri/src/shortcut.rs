@@ -153,17 +153,26 @@ fn debug_print_clip(clip: &Clip) {
     }
 }
 
+use std::sync::atomic::{AtomicBool, Ordering};
+static MAIN_WAS_VISIBLE: AtomicBool = AtomicBool::new(false);
+
 fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
     let clip_for_llm = clip.clone();
     let clip_for_emit = clip.clone();
+
     // start async llm call right away
     let llm_future =
         tauri::async_runtime::spawn(async move { llm::get_llm_category(&clip_for_llm).await.ok() });
 
-    if let Some(existing_window) = app.get_webview_window("clip-toolbar") {
-        existing_window.close().ok();
-    }
+    // Close any existing toolbar window
+    // if let Some(main_window) = app.get_webview_window("main") {
+    //     let was_visible = main_window.is_visible().unwrap_or(false);
+    //     MAIN_WAS_VISIBLE.store(was_visible, Ordering::Relaxed);
 
+    //     if was_visible {
+    //         main_window.hide().ok();
+    //     }
+    // }
     let window =
         WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("toolbar.html".into()))
             .title("Add Context to Clip")
@@ -179,10 +188,6 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
             .build();
 
     if let Ok(window) = window {
-        if let Some(main_window) = app.get_webview_window("main") {
-            main_window.hide().ok();
-        }
-
         let window_for_focus = window.clone();
         window.on_window_event(move |event| {
             match event {
@@ -194,6 +199,18 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
                 _ => {}
             }
         });
+
+        // let app_handle = app.clone();
+        // window.on_window_event(move |ev| {
+        //     if let WindowEvent::CloseRequested { .. } = ev {
+        //         if MAIN_WAS_VISIBLE.load(Ordering::Relaxed) {
+        //             if let Some(main) = app_handle.get_webview_window("main") {
+        //                 let _ = main.show();
+        //                 let _ = main.set_focus();
+        //             }
+        //         }
+        //     }
+        // });
 
         // Position window based on cursor location
         let window_clone = window.clone();
@@ -254,6 +271,7 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
                 suggested_category,
                 clip: clip_for_emit,
             };
+            println!("sending clip data");
 
             if let Err(e) = window.emit("clip-data", &clip_context) {
                 eprintln!("Failed to emit clip data: {}", e);
