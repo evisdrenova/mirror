@@ -26,10 +26,19 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-            // let _ = dotenvy::dotenv();
+            let dotenv_loaded = dotenvy::dotenv().is_ok();
+            let has_openai_key = env::var("OPENAI_API_KEY")
+                .map(|v| !v.trim().is_empty())
+                .unwrap_or(false);
+
+            if !dotenv_loaded {
+                eprintln!(".env not found");
+            }
+            if !has_openai_key {
+                eprintln!("OPENAI_API_KEY missing.");
+            }
 
             let db_path = database::init_database(app.app_handle().clone())?;
-            // save db path in app state
             app.manage(AppState {
                 db_path: db_path.clone(),
             });
