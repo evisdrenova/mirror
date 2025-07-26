@@ -107,7 +107,7 @@ export const ClipToolbar: React.FC = () => {
       </Button>
       <Button
         onClick={handleSave}
-        disabled={isSaving || isLoadingClipData}
+        disabled={isSaving || !clipData?.suggested_category}
         variant="ghost"
         className="hover:bg-gray-200"
         size="sm"
