@@ -4,6 +4,7 @@ mod llm;
 mod shortcut;
 
 use crate::shortcut::shortcut_hotkey;
+use std::env;
 use std::path::PathBuf;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;

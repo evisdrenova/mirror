@@ -71,12 +71,33 @@ fn simulate_copy() {
 
 pub fn handle_capture(app: &AppHandle) {
     simulate_copy();
-    let cursor_pos = get_cursor_position();
     thread::sleep(Duration::from_millis(120));
     if let Some(clip) = read_clipboard_with_retry(5, Duration::from_millis(50)) {
         debug_print_clip(&clip);
 
-        launch_toolbar(app, clip, cursor_pos);
+        // Get the database path from app state
+        let db_path = app.state::<crate::AppState>().db_path.clone();
+
+        // Handle async operations
+        let app_handle = app.clone();
+        let clip_clone = clip.clone();
+        tauri::async_runtime::spawn(async move {
+            // Get LLM category suggestion
+            let category = match llm::get_llm_category(&clip_clone).await {
+                Ok(suggested_category) => suggested_category,
+                Err(e) => {
+                    eprintln!("LLM categorization failed: {}", e);
+                    "Uncategorized".to_string() // Fallback category
+                }
+            };
+
+            // Save the clip with the determined category
+            if let Err(e) = save_clip(&app_handle, &db_path, &clip_clone, &category).await {
+                eprintln!("Failed to save clip: {}", e);
+            } else {
+                println!("Clip saved to category: {}", category);
+            }
+        });
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
     }
@@ -173,6 +194,17 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
     //         main_window.hide().ok();
     //     }
     // }
+
+    let main_window_info = if let Some(main_window) = app.get_webview_window("main") {
+        Some((
+            main_window.is_visible().unwrap_or(false),
+            main_window.is_focused().unwrap_or(false),
+            main_window.is_minimized().unwrap_or(false),
+        ))
+    } else {
+        None
+    };
+
     let window =
         WebviewWindowBuilder::new(app, "clip-toolbar", WebviewUrl::App("toolbar.html".into()))
             .title("Add Context to Clip")
@@ -185,6 +217,7 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
             .shadow(true)
             .visible(false)
             .focused(false)
+            .accept_first_mouse(true)
             .build();
 
     if let Ok(window) = window {
@@ -214,6 +247,7 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
 
         // Position window based on cursor location
         let window_clone = window.clone();
+        let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
             if let Some((cursor_x, cursor_y)) = cursor_pos {
                 // Position window below and slightly to the right of cursor
@@ -256,6 +290,22 @@ fn launch_toolbar(app: &AppHandle, clip: Clip, cursor_pos: Option<(f64, f64)>) {
             // Show and focus only the popup window
             window_clone.show().ok();
             window_clone.set_focus().ok();
+
+            if let (Some(main_window), Some((was_visible, was_focused, was_minimized))) =
+                (app_clone.get_webview_window("main"), main_window_info)
+            {
+                // If main window was brought forward unintentionally, push it back
+                if was_visible {
+                    // Use a trick: temporarily minimize and restore if it wasn't originally minimized
+                    if !was_minimized && !was_focused {
+                        // Send it to back by minimizing and then showing without focus
+                        main_window.minimize().ok();
+                        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                        main_window.show().ok();
+                        // Don't set focus - let it stay in background
+                    }
+                }
+            }
         });
 
         tauri::async_runtime::spawn(async move {
