@@ -16,7 +16,6 @@ pub struct ClipItem {
 
 #[tauri::command]
 pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, String> {
-    println!("get_items called!");
     let conn =
         Connection::open(&state.db_path).map_err(|e| format!("Failed to open database: {e}"))?;
 
