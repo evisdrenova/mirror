@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "./components/ui/dialog";
 import { listen } from "@tauri-apps/api/event";
 import "./globals.css";
 import { errorToast } from "./components/ui/toast";
-
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatDateTime } from "./lib/utils";
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
@@ -72,11 +80,7 @@ export default function App() {
       <div className="mx-20">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Mirror</h1>
-          <p className="text-gray-600 text-sm">
-            Clipboard manager with AI categorization
-          </p>
         </div>
-
         <div className="mt-2">
           {isLoadingItems ? (
             <div className="flex items-center justify-center py-8">
@@ -103,6 +107,9 @@ interface ClipVirtualizerProps {
 }
 
 function ClipVirtualizer({ items }: ClipVirtualizerProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ClipItem | null>(null);
+
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Calculate items per row (4 columns)
@@ -133,7 +140,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
             >
               {text}
             </a>
-            <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
           </div>
         );
       } else {
@@ -201,41 +207,56 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
               }}
             >
               <div className="grid grid-cols-4 gap-4 p-2 h-full">
-                {rowItems.map((item, colIndex) => (
+                {rowItems.map((item) => (
                   <div
                     key={item.id}
                     className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setDialogOpen(true);
+                    }}
                   >
-                    {/* Category Badge */}
-                    <div className="mb-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {item.category || "Uncategorized"}
-                      </span>
+                    <div className="flex flex-row justify-between">
+                      <div className="mb-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {item.category || "Uncategorized"}
+                        </span>
+                      </div>
+                      <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
                     </div>
-
-                    {/* Clip Content */}
                     <div className="flex-1 mb-2">
                       {renderClipContent(item.clip)}
                     </div>
-
-                    {/* Created Date */}
                     <div className="text-xs text-gray-500 mt-auto">
                       {formatDateTime(item.created_at)}
                     </div>
                   </div>
                 ))}
-
-                {/* Fill empty slots if last row is incomplete */}
-                {Array.from({ length: itemsPerRow - rowItems.length }).map(
-                  (_, emptyIndex) => (
-                    <div key={`empty-${rowIndex}-${emptyIndex}`} />
-                  )
-                )}
               </div>
             </div>
           );
         })}
       </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clip Details</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            {selectedItem && renderClipContent(selectedItem.clip)}
+            <div className="mt-4 text-xs text-gray-500">
+              {selectedItem && formatDateTime(selectedItem.created_at)}
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <button className="px-4 py-2 bg-blue-500 text-white rounded">
+                Close
+              </button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
