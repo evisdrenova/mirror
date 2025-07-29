@@ -5,7 +5,6 @@ import "./globals.css";
 import { errorToast } from "./components/ui/toast";
 import { DataTable } from "./components/data-table";
 import { columns } from "./components/columns";
-import { Button } from "./components/ui/button";
 
 export const categories = [
   "code",

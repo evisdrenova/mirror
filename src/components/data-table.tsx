@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { DataTablePagination } from "./data-table-pagination";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { categories } from "../App";
 
@@ -44,7 +44,30 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: (row, columnId, filterValue) => {
+      const selectedCategories = filterValue as string[];
+
+      // If no categories are selected, show all rows
+      if (!selectedCategories || selectedCategories.length === 0) {
+        return true;
+      }
+
+      // Get the category value from the row
+      const rowCategory = row.getValue("category") as string;
+
+      // Handle null/undefined categories
+      const categoryToCheck = rowCategory || "Uncategorized";
+
+      // Return true if the row's category is in the selected filter categories
+      return selectedCategories.includes(categoryToCheck);
+    },
+    enableGlobalFilter: true,
   });
+
+  // Trigger filtering when filterCategories changes
+  useEffect(() => {
+    table.setGlobalFilter(filterCategories);
+  }, [filterCategories, table]);
 
   return (
     <div>
@@ -120,6 +143,7 @@ interface CategoryFilterProps {
 
 function CategoryFilter(props: CategoryFilterProps) {
   const { filterCategories, setFilterCategories } = props;
+
   return (
     <div className="flex flex-row items-center gap-2">
       {categories.map((c) => (
