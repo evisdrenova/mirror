@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -66,7 +65,6 @@ export default function App() {
     getItems();
 
     const unlisten = listen("clip-saved", () => {
-      console.log("New clip saved, refreshing...");
       getItems();
     });
 
@@ -107,14 +105,35 @@ interface ClipVirtualizerProps {
 }
 
 function ClipVirtualizer({ items }: ClipVirtualizerProps) {
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ClipItem | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
 
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const clearAllCategories = () => {
+    setSelectedCategories([]);
+  };
+
+  // Filter items based on selected categories
+  const displayedItems =
+    selectedCategories.length === 0
+      ? items
+      : items.filter(
+          (item) => item.category && selectedCategories.includes(item.category)
+        );
+
   // Calculate items per row (4 columns)
   const itemsPerRow = 4;
-  const rowCount = Math.ceil(items.length / itemsPerRow);
+  const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
 
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
@@ -137,6 +156,7 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
               rel="noopener noreferrer"
               className="truncate font-medium text-blue-600 hover:text-blue-800 underline text-sm"
               title={text}
+              onClick={(e) => e.stopPropagation()} // Prevent dialog from opening
             >
               {text}
             </a>
@@ -167,6 +187,7 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
     return <span className="text-sm text-gray-500">Unknown clip type</span>;
   };
 
+  // If no items exist at all
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -176,81 +197,145 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="w-full"
-      style={{
-        height: `600px`,
-        overflow: "auto",
-      }}
-    >
-      <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
-        }}
-      >
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const rowIndex = virtualRow.index;
-          const startIndex = rowIndex * itemsPerRow;
-          const endIndex = Math.min(startIndex + itemsPerRow, items.length);
-          const rowItems = items.slice(startIndex, endIndex);
-
-          return (
-            <div
-              key={virtualRow.key}
-              className="absolute top-0 left-0 w-full"
-              style={{
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
+    <div className="w-full">
+      {/* Category Filter Bar */}
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => toggleCategory(cat)}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                selectedCategories.includes(cat)
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
             >
-              <div className="grid grid-cols-4 gap-4 p-2 h-full">
-                {rowItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setDialogOpen(true);
-                    }}
-                  >
-                    <div className="flex flex-row justify-between">
-                      <div className="mb-2">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {item.category || "Uncategorized"}
-                        </span>
-                      </div>
-                      <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
-                    </div>
-                    <div className="flex-1 mb-2">
-                      {renderClipContent(item.clip)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-auto">
-                      {formatDateTime(item.created_at)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+              {cat}
+            </button>
+          ))}
+          {selectedCategories.length > 0 && (
+            <button
+              onClick={clearAllCategories}
+              className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
+        {selectedCategories.length > 0 && (
+          <div className="mt-2 text-sm text-gray-600">
+            Showing {displayedItems.length} of {items.length} clips
+          </div>
+        )}
       </div>
+
+      {/* Virtualized Grid */}
+      {displayedItems.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <p>No clips match the selected categories</p>
+        </div>
+      ) : (
+        <div
+          ref={parentRef}
+          className="w-full"
+          style={{
+            height: `600px`,
+            overflow: "auto",
+          }}
+        >
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const rowIndex = virtualRow.index;
+              const startIndex = rowIndex * itemsPerRow;
+              const endIndex = Math.min(
+                startIndex + itemsPerRow,
+                displayedItems.length
+              );
+              const rowItems = displayedItems.slice(startIndex, endIndex); // Use displayedItems, not items
+
+              return (
+                <div
+                  key={virtualRow.key}
+                  className="absolute top-0 left-0 w-full"
+                  style={{
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <div className="grid grid-cols-4 gap-4 p-2 h-full">
+                    {rowItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <div className="flex flex-row justify-between">
+                          <div className="mb-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {item.category || "Uncategorized"}
+                            </span>
+                          </div>
+                          <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
+                        </div>
+                        <div className="flex-1 mb-2">
+                          {renderClipContent(item.clip)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-auto">
+                          {formatDateTime(item.created_at)}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Fill empty slots if last row is incomplete */}
+                    {Array.from({ length: itemsPerRow - rowItems.length }).map(
+                      (_, emptyIndex) => (
+                        <div key={`empty-${rowIndex}-${emptyIndex}`} />
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Dialog for clip details */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Clip Details</DialogTitle>
           </DialogHeader>
           <div className="p-4">
-            {selectedItem && renderClipContent(selectedItem.clip)}
-            <div className="mt-4 text-xs text-gray-500">
-              {selectedItem && formatDateTime(selectedItem.created_at)}
-            </div>
+            {selectedItem && (
+              <>
+                <div className="mb-4">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {selectedItem.category || "Uncategorized"}
+                  </span>
+                </div>
+                <div className="mb-4">
+                  {renderClipContent(selectedItem.clip)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Created: {formatDateTime(selectedItem.created_at)}
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <button className="px-4 py-2 bg-blue-500 text-white rounded">
+              <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                 Close
               </button>
             </DialogClose>
