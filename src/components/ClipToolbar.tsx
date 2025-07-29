@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Check, X } from "lucide-react";
 import Spinner from "./Spinner";
 import { CategoryInput } from "./CategoryCombobox";
+import { categories } from "../App";
 
 interface ClipContext {
   suggested_category?: string;
@@ -13,22 +14,6 @@ interface ClipContext {
     Image?: { data: number[]; width: number; height: number };
   };
 }
-
-const categories = [
-  "code",
-  "technical_advice",
-  "documentation",
-  "url",
-  "communication",
-  "notes",
-  "reference",
-  "creative",
-  "business",
-  "quotes",
-  "academic",
-  "errors",
-  "other",
-];
 
 export const ClipToolbar: React.FC = () => {
   const [clipData, setClipData] = useState<ClipContext | null>(null);

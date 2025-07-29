@@ -5,6 +5,23 @@ import "./globals.css";
 import { errorToast } from "./components/ui/toast";
 import { DataTable } from "./components/data-table";
 import { columns } from "./components/columns";
+import { Button } from "./components/ui/button";
+
+export const categories = [
+  "code",
+  "technical_advice",
+  "documentation",
+  "url",
+  "communication",
+  "notes",
+  "reference",
+  "creative",
+  "business",
+  "quotes",
+  "academic",
+  "errors",
+  "other",
+];
 
 export interface ClipItem {
   id: string;
@@ -56,14 +73,15 @@ export default function App() {
           </p>
         </div>
 
-        {isLoadingItems ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-gray-600">Loading clips...</div>
-          </div>
-        ) : (
-          <DataTable columns={columns} data={items} />
-        )}
-
+        <div className="mt-2">
+          {isLoadingItems ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-gray-600">Loading clips...</div>
+            </div>
+          ) : (
+            <DataTable columns={columns} data={items} />
+          )}
+        </div>
         {items.length === 0 && !isLoadingItems && (
           <div className="text-center py-8 text-gray-500">
             <p>

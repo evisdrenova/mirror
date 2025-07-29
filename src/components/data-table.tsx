@@ -4,6 +4,7 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -18,6 +19,8 @@ import {
 } from "./ui/table";
 import { DataTablePagination } from "./data-table-pagination";
 import { useState } from "react";
+import { Button } from "./ui/button";
+import { categories } from "../App";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -30,6 +33,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [pagination, setPagination] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [filterCategories, setFilterCategories] = useState<string[]>([]);
 
   const table = useReactTable({
     data,
@@ -39,10 +43,17 @@ export function DataTable<TData, TValue>({
     },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   });
 
   return (
     <div>
+      <div className="my-2">
+        <CategoryFilter
+          filterCategories={filterCategories}
+          setFilterCategories={setFilterCategories}
+        />
+      </div>
       <div className="space-y-2 rounded-md border overflow-hidden dark:border-gray-700">
         <Table>
           <TableHeader>
@@ -98,6 +109,44 @@ export function DataTable<TData, TValue>({
         setPagination={setPagination}
         setPageSize={setPageSize}
       />
+    </div>
+  );
+}
+
+interface CategoryFilterProps {
+  filterCategories: string[];
+  setFilterCategories: (val: string[] | ((val: string[]) => string[])) => void;
+}
+
+function CategoryFilter(props: CategoryFilterProps) {
+  const { filterCategories, setFilterCategories } = props;
+  return (
+    <div className="flex flex-row items-center gap-2">
+      {categories.map((c) => (
+        <Button
+          key={c}
+          className={`border border-gray-400 rounded cursor-pointer text-xs shadow-none ${
+            filterCategories.includes(c)
+              ? "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-white text-gray-700 hover:bg-gray-200"
+          }`}
+          onClick={() => {
+            setFilterCategories((prev: string[]) =>
+              prev.includes(c) ? prev.filter((cat) => cat !== c) : [...prev, c]
+            );
+          }}
+        >
+          {c}
+        </Button>
+      ))}
+      {filterCategories.length > 0 && (
+        <Button
+          className="border border-red-400 rounded cursor-pointer text-xs bg-red-50 text-red-600 shadow-none hover:bg-red-100"
+          onClick={() => setFilterCategories([])}
+        >
+          Clear All
+        </Button>
+      )}
     </div>
   );
 }
