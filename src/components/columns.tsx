@@ -61,6 +61,27 @@ export const columns: ColumnDef<ClipItem>[] = [
         </div>
       );
     },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue || filterValue.trim() === "") {
+        return true;
+      }
+
+      const clip = row.getValue("clip") as ClipItem["clip"];
+      const searchTerm = filterValue.toLowerCase().trim();
+
+      // Extract searchable text from clip
+      let clipText = "";
+
+      if (clip.Text?.plain) {
+        clipText = clip.Text.plain.toLowerCase();
+      } else if (clip.Image) {
+        clipText =
+          `image ${clip.Image.width}x${clip.Image.height}`.toLowerCase();
+      }
+
+      // Return true if search term is found in clip text
+      return clipText.includes(searchTerm);
+    },
   },
   {
     accessorKey: "created_at",

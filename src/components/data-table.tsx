@@ -2,10 +2,16 @@
 
 import {
   ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -17,10 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+
 import { DataTablePagination } from "./data-table-pagination";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { categories } from "../App";
+import { Cross2Icon } from "@radix-ui/react-icons";
+import { Input } from "./ui/input";
+import { DataTableToolbar } from "./data-table-search";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -34,15 +44,19 @@ export function DataTable<TData, TValue>({
   const [pagination, setPagination] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [filterCategories, setFilterCategories] = useState<string[]>([]);
+  const [filterClips, setFilterClips] = useState<string>();
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const table = useReactTable({
     data,
     columns,
     state: {
+      columnFilters,
       pagination: { pageIndex: pagination, pageSize: pageSize },
     },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     globalFilterFn: (row, columnId, filterValue) => {
       const selectedCategories = filterValue as string[];
@@ -72,6 +86,12 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       <div className="my-2">
+        {/* <ClipSearch
+          table={table}
+          filterClips={filterClips}
+          setFilterClips={setFilterClips}
+        /> */}
+        <DataTableToolbar table={table} />
         <CategoryFilter
           filterCategories={filterCategories}
           setFilterCategories={setFilterCategories}
@@ -135,6 +155,42 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
+
+// interface ClipSearchProps {
+//   filterClips: string | undefined;
+//   setFilterClips: (val: string) => void;
+//   table: Table<TData>;
+// }
+
+// function ClipSearch<TData>(props: ClipSearchProps) {
+//   const { filterClips, setFilterClips, table } = props;
+//   const isFiltered = table.getState().columnFilters.length > 0;
+
+//   return (
+//     <div className="flex flex-row items-center gap-2">
+//       <div className="flex flex-1 items-center space-x-2">
+//         <Input
+//           placeholder="Filter jobs..."
+//           value={(table.getColumn("clip")?.getFilterValue() as string) ?? ""}
+//           onChange={(event) =>
+//             table.getColumn("name")?.setFilterValue(event.target.value)
+//           }
+//           className="h-8 w-[150px] lg:w-[250px]"
+//         />
+//         {isFiltered && (
+//           <Button
+//             variant="ghost"
+//             onClick={() => table.resetColumnFilters()}
+//             className="h-8 px-2 lg:px-3"
+//           >
+//             Reset
+//             <Cross2Icon className="ml-2 h-4 w-4" />
+//           </Button>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 interface CategoryFilterProps {
   filterCategories: string[];
