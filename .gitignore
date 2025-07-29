@@ -46,6 +46,7 @@ pnpm-debug.log*
 **/*.pdb
 
 # Cache and temporary files
+.crush
 .eslintcache
 .tsbuildinfo
 .turbo
