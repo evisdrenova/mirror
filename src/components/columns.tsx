@@ -4,13 +4,16 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ClipItem } from "../App";
 import { formatDateTime } from "../lib/utils";
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
+import { DataTableColumnHeader } from "./data-table-column-header";
 
 const isUrl = (text: string) => /^https?:\/\/[^\s]+$/.test(text);
 
 export const columns: ColumnDef<ClipItem>[] = [
   {
     accessorKey: "clip",
-    header: "Clip",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Clip" />
+    ),
     cell: ({ row }) => {
       const clip = row.getValue("clip") as ClipItem["clip"];
 
@@ -85,7 +88,9 @@ export const columns: ColumnDef<ClipItem>[] = [
   },
   {
     accessorKey: "created_at",
-    header: "Created",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created Date" />
+    ),
     cell: ({ row }) => {
       return (
         <div className="flex space-x-2">
@@ -98,8 +103,9 @@ export const columns: ColumnDef<ClipItem>[] = [
   },
   {
     accessorKey: "category",
-    header: "Category",
-
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Category" />
+    ),
     cell: ({ row }) => {
       return (
         <div className="flex space-x-2">

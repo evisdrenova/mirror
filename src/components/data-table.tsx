@@ -30,7 +30,7 @@ import { Button } from "./ui/button";
 import { categories } from "../App";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { Input } from "./ui/input";
-import { DataTableToolbar } from "./data-table-search";
+import { DataTableToolbar } from "./data-table-toolbar";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -46,11 +46,19 @@ export function DataTable<TData, TValue>({
   const [filterCategories, setFilterCategories] = useState<string[]>([]);
   const [filterClips, setFilterClips] = useState<string>();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    id: false,
+  });
 
   const table = useReactTable({
     data,
     columns,
     state: {
+      sorting,
+      columnVisibility,
+      rowSelection,
       columnFilters,
       pagination: { pageIndex: pagination, pageSize: pageSize },
     },
@@ -58,6 +66,12 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     globalFilterFn: (row, columnId, filterValue) => {
       const selectedCategories = filterValue as string[];
 
@@ -86,25 +100,16 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       <div className="my-2">
-        {/* <ClipSearch
-          table={table}
-          filterClips={filterClips}
-          setFilterClips={setFilterClips}
-        /> */}
         <DataTableToolbar table={table} />
-        <CategoryFilter
-          filterCategories={filterCategories}
-          setFilterCategories={setFilterCategories}
-        />
       </div>
       <div className="space-y-2 rounded-md border overflow-hidden dark:border-gray-700">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-100 dark:bg-gray-800">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="pl-2">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -152,81 +157,6 @@ export function DataTable<TData, TValue>({
         setPagination={setPagination}
         setPageSize={setPageSize}
       />
-    </div>
-  );
-}
-
-// interface ClipSearchProps {
-//   filterClips: string | undefined;
-//   setFilterClips: (val: string) => void;
-//   table: Table<TData>;
-// }
-
-// function ClipSearch<TData>(props: ClipSearchProps) {
-//   const { filterClips, setFilterClips, table } = props;
-//   const isFiltered = table.getState().columnFilters.length > 0;
-
-//   return (
-//     <div className="flex flex-row items-center gap-2">
-//       <div className="flex flex-1 items-center space-x-2">
-//         <Input
-//           placeholder="Filter jobs..."
-//           value={(table.getColumn("clip")?.getFilterValue() as string) ?? ""}
-//           onChange={(event) =>
-//             table.getColumn("name")?.setFilterValue(event.target.value)
-//           }
-//           className="h-8 w-[150px] lg:w-[250px]"
-//         />
-//         {isFiltered && (
-//           <Button
-//             variant="ghost"
-//             onClick={() => table.resetColumnFilters()}
-//             className="h-8 px-2 lg:px-3"
-//           >
-//             Reset
-//             <Cross2Icon className="ml-2 h-4 w-4" />
-//           </Button>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-interface CategoryFilterProps {
-  filterCategories: string[];
-  setFilterCategories: (val: string[] | ((val: string[]) => string[])) => void;
-}
-
-function CategoryFilter(props: CategoryFilterProps) {
-  const { filterCategories, setFilterCategories } = props;
-
-  return (
-    <div className="flex flex-row items-center gap-2">
-      {categories.map((c) => (
-        <Button
-          key={c}
-          className={`border border-gray-400 rounded cursor-pointer text-xs shadow-none ${
-            filterCategories.includes(c)
-              ? "bg-blue-500 text-white hover:bg-blue-600"
-              : "bg-white text-gray-700 hover:bg-gray-200"
-          }`}
-          onClick={() => {
-            setFilterCategories((prev: string[]) =>
-              prev.includes(c) ? prev.filter((cat) => cat !== c) : [...prev, c]
-            );
-          }}
-        >
-          {c}
-        </Button>
-      ))}
-      {filterCategories.length > 0 && (
-        <Button
-          className="border border-red-400 rounded cursor-pointer text-xs bg-red-50 text-red-600 shadow-none hover:bg-red-100"
-          onClick={() => setFilterCategories([])}
-        >
-          Clear All
-        </Button>
-      )}
     </div>
   );
 }
