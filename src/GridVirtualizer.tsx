@@ -220,6 +220,8 @@ interface ClipDialogProps {
 function ClipDialog(props: ClipDialogProps) {
   const { dialogOpen, setDialogOpen, selectedItem, handleDelete, isDeleting } =
     props;
+
+  console.log("selected item", selectedItem?.clip);
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-2xl">
@@ -256,12 +258,27 @@ function ClipDialog(props: ClipDialogProps) {
                   )}
                 </Button>
               </div>
-              <div className="mb-4 max-h-96 overflow-auto">
-                {renderClipContent(selectedItem.clip)}
+
+              {/* Full clip content - no truncation */}
+              <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-gray-50">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Content:
+                </h4>
+                {renderClipContent(selectedItem.clip, false)}
               </div>
-              <div className="mb-4 max-h-96 overflow-auto">
-                {selectedItem.summary}
-              </div>
+
+              {/* Summary if available */}
+              {selectedItem.summary && (
+                <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-blue-50">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Summary:
+                  </h4>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {selectedItem.summary}
+                  </p>
+                </div>
+              )}
+
               <div className="text-xs text-gray-500">
                 Created: {formatDateTime(selectedItem.created_at)}
               </div>
@@ -280,7 +297,10 @@ function ClipDialog(props: ClipDialogProps) {
   );
 }
 
-const renderClipContent = (clip: ClipItem["clip"]) => {
+const renderClipContent = (
+  clip: ClipItem["clip"],
+  truncate: boolean = true
+) => {
   if (clip.Text?.plain) {
     const text = clip.Text.plain;
 
@@ -291,7 +311,9 @@ const renderClipContent = (clip: ClipItem["clip"]) => {
             href={text}
             target="_blank"
             rel="noopener noreferrer"
-            className="truncate font-medium text-blue-600 hover:text-blue-800 underline text-sm"
+            className={`font-medium text-blue-600 hover:text-blue-800 underline text-sm ${
+              truncate ? "truncate" : "break-all"
+            }`}
             title={text}
             onClick={(e) => e.stopPropagation()}
           >
@@ -301,7 +323,12 @@ const renderClipContent = (clip: ClipItem["clip"]) => {
       );
     } else {
       return (
-        <p className="text-sm text-gray-900 line-clamp-3" title={text}>
+        <p
+          className={`text-sm text-gray-900 ${
+            truncate ? "line-clamp-3" : "whitespace-pre-wrap"
+          }`}
+          title={truncate ? text : undefined}
+        >
           {text}
         </p>
       );
