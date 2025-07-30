@@ -156,7 +156,7 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
               rel="noopener noreferrer"
               className="truncate font-medium text-blue-600 hover:text-blue-800 underline text-sm"
               title={text}
-              onClick={(e) => e.stopPropagation()} // Prevent dialog from opening
+              onClick={(e) => e.stopPropagation()}
             >
               {text}
             </a>
@@ -187,7 +187,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
     return <span className="text-sm text-gray-500">Unknown clip type</span>;
   };
 
-  // If no items exist at all
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -198,7 +197,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
 
   return (
     <div className="w-full">
-      {/* Category Filter Bar */}
       <div className="mb-4">
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
@@ -229,8 +227,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
           </div>
         )}
       </div>
-
-      {/* Virtualized Grid */}
       {displayedItems.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <p>No clips match the selected categories</p>
@@ -258,7 +254,7 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
                 startIndex + itemsPerRow,
                 displayedItems.length
               );
-              const rowItems = displayedItems.slice(startIndex, endIndex); // Use displayedItems, not items
+              const rowItems = displayedItems.slice(startIndex, endIndex);
 
               return (
                 <div
@@ -295,13 +291,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
                         </div>
                       </div>
                     ))}
-
-                    {/* Fill empty slots if last row is incomplete */}
-                    {Array.from({ length: itemsPerRow - rowItems.length }).map(
-                      (_, emptyIndex) => (
-                        <div key={`empty-${rowIndex}-${emptyIndex}`} />
-                      )
-                    )}
                   </div>
                 </div>
               );
@@ -310,9 +299,8 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
         </div>
       )}
 
-      {/* Dialog for clip details */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-5xl">
           <DialogHeader>
             <DialogTitle>Clip Details</DialogTitle>
           </DialogHeader>
