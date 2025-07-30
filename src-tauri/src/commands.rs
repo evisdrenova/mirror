@@ -1,10 +1,10 @@
 use crate::shortcut::{save_clip, Clip};
 use crate::AppState;
 use base64::{engine::general_purpose, Engine};
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 use serde::Serialize;
 
-use tauri::{Manager, State};
+use tauri::{Emitter, Manager, State};
 
 #[derive(Debug, Serialize)]
 pub struct ClipItem {
@@ -102,8 +102,6 @@ pub async fn submit_clip(
 ) -> Result<(), String> {
     let db_path = &state.db_path;
 
-    println!("trying to save clip in back");
-
     let clip: Clip = serde_json::from_str(&clip_json)
         .map_err(|e| format!("Failed to deserialize clip: {}", e))?;
 
@@ -119,10 +117,37 @@ pub async fn submit_clip(
     Ok(())
 }
 
+// #[tauri::command]
+// pub fn close_toolbar_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+//     if let Some(window) = app_handle.get_webview_window("clip-toolbar") {
+//         window.close().map_err(|e| e.to_string())?;
+//     }
+//     Ok(())
+// }
+
 #[tauri::command]
-pub fn close_toolbar_window(app_handle: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app_handle.get_webview_window("clip-toolbar") {
-        window.close().map_err(|e| e.to_string())?;
+pub fn delete_item(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+    item_id: i64,
+) -> Result<(), String> {
+    println!("here");
+    let conn =
+        Connection::open(&state.db_path).map_err(|e| format!("Failed to open database: {e}"))?;
+
+    println!("itemid{}", item_id);
+
+    let rows_affected = conn
+        .execute("DELETE FROM clips WHERE id = ?", params![item_id])
+        .map_err(|error| format!("Failed to delete item: {}", error))?;
+
+    if rows_affected == 0 {
+        return Err("Item not found".to_string());
     }
+
+    app_handle
+        .emit("clip-deleted", &item_id)
+        .map_err(|e| format!("Failed to emit event: {}", e))?;
+
     Ok(())
 }

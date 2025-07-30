@@ -1,35 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "./components/ui/dialog";
 import { listen } from "@tauri-apps/api/event";
 import "./globals.css";
 import { errorToast } from "./components/ui/toast";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { formatDateTime } from "./lib/utils";
-import { ArrowTopRightIcon } from "@radix-ui/react-icons";
-
-export const categories = [
-  "code",
-  "technical_advice",
-  "documentation",
-  "url",
-  "communication",
-  "notes",
-  "reference",
-  "creative",
-  "business",
-  "quotes",
-  "academic",
-  "errors",
-  "other",
-];
+import Spinner from "./components/Spinner";
+import GridVirtualizer from "./GridVirtualizer";
 
 export interface ClipItem {
   id: string;
@@ -40,8 +15,6 @@ export interface ClipItem {
   created_at: string;
   category?: string;
 }
-
-const isUrl = (text: string) => /^https?:\/\/[^\s]+$/.test(text);
 
 export default function App() {
   const [items, setItems] = useState<ClipItem[]>([]);
@@ -64,12 +37,17 @@ export default function App() {
   useEffect(() => {
     getItems();
 
-    const unlisten = listen("clip-saved", () => {
+    const unlistenSaved = listen("clip-saved", () => {
+      getItems();
+    });
+
+    const unlistenDeleted = listen("clip-deleted", () => {
       getItems();
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenSaved.then((fn) => fn());
+      unlistenDeleted.then((fn) => fn());
     };
   }, []);
 
@@ -82,10 +60,13 @@ export default function App() {
         <div className="mt-2">
           {isLoadingItems ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-600">Loading clips...</div>
+              <div className="text-gray-600 flex flex-row items-center gap-2">
+                <Spinner className="w-4" />
+                Loading clips...
+              </div>
             </div>
           ) : (
-            <ClipVirtualizer items={items} />
+            <GridVirtualizer items={items} getItems={getItems} />
           )}
         </div>
         {items.length === 0 && !isLoadingItems && (
@@ -96,266 +77,6 @@ export default function App() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-interface ClipVirtualizerProps {
-  items: ClipItem[];
-}
-
-function ClipVirtualizer({ items }: ClipVirtualizerProps) {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ClipItem | null>(null);
-
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const toggleCategory = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const clearAllCategories = () => {
-    setSelectedCategories([]);
-  };
-
-  const displayedItems =
-    selectedCategories.length === 0
-      ? items
-      : items.filter(
-          (item) => item.category && selectedCategories.includes(item.category)
-        );
-
-  const itemsPerRow = 4;
-  const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
-
-  const rowVirtualizer = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 200, // Height for each row of cards
-    overscan: 2,
-  });
-
-  const renderClipContent = (clip: ClipItem["clip"]) => {
-    // Handle text clips
-    if (clip.Text?.plain) {
-      const text = clip.Text.plain;
-
-      if (isUrl(text)) {
-        return (
-          <div className="flex flex-col space-y-1">
-            <a
-              href={text}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="truncate font-medium text-blue-600 hover:text-blue-800 underline text-sm"
-              title={text}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {text}
-            </a>
-          </div>
-        );
-      } else {
-        return (
-          <p className="text-sm text-gray-900 line-clamp-3" title={text}>
-            {text}
-          </p>
-        );
-      }
-    }
-
-    // Handle image clips
-    if (clip.Image) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-gray-500">
-          <div className="text-2xl mb-1">🖼️</div>
-          <span className="text-xs">
-            {clip.Image.width}x{clip.Image.height}
-          </span>
-        </div>
-      );
-    }
-
-    // Fallback for unknown clip types
-    return <span className="text-sm text-gray-500">Unknown clip type</span>;
-  };
-
-  if (items.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No clips to display</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <CategoryFilter
-        toggleCategory={toggleCategory}
-        selectedCategories={selectedCategories}
-        clearAllCategories={clearAllCategories}
-        displayedItems={displayedItems}
-        items={items}
-      />
-      {displayedItems.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <p>No clips match the selected categories</p>
-        </div>
-      ) : (
-        <div
-          ref={parentRef}
-          className="w-full"
-          style={{
-            height: `600px`,
-            overflow: "auto",
-          }}
-        >
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const rowIndex = virtualRow.index;
-              const startIndex = rowIndex * itemsPerRow;
-              const endIndex = Math.min(
-                startIndex + itemsPerRow,
-                displayedItems.length
-              );
-              const rowItems = displayedItems.slice(startIndex, endIndex);
-
-              return (
-                <div
-                  key={virtualRow.key}
-                  className="absolute top-0 left-0 w-full"
-                  style={{
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <div className="grid grid-cols-4 gap-4 p-2 h-full">
-                    {rowItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-                        onClick={() => {
-                          setSelectedItem(item);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <div className="flex flex-row justify-between">
-                          <div className="mb-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {item.category || "Uncategorized"}
-                            </span>
-                          </div>
-                          <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
-                        </div>
-                        <div className="flex-1 mb-2">
-                          {renderClipContent(item.clip)}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-auto">
-                          {formatDateTime(item.created_at)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-5xl">
-          <DialogHeader>
-            <DialogTitle>Clip Details</DialogTitle>
-          </DialogHeader>
-          <div className="p-4">
-            {selectedItem && (
-              <>
-                <div className="mb-4">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {selectedItem.category || "Uncategorized"}
-                  </span>
-                </div>
-                <div className="mb-4">
-                  {renderClipContent(selectedItem.clip)}
-                </div>
-                <div className="text-xs text-gray-500">
-                  Created: {formatDateTime(selectedItem.created_at)}
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Close
-              </button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-interface CategoryFilterProps {
-  clearAllCategories: () => void;
-  selectedCategories: string[];
-  toggleCategory: (category: string) => void;
-  displayedItems: ClipItem[];
-  items: ClipItem[];
-}
-
-function CategoryFilter(props: CategoryFilterProps) {
-  const {
-    clearAllCategories,
-    selectedCategories,
-    toggleCategory,
-    displayedItems,
-    items,
-  } = props;
-
-  return (
-    <div className="mb-4">
-      <div className="flex flex-wrap gap-2">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => toggleCategory(cat)}
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-              selectedCategories.includes(cat)
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-        {selectedCategories.length > 0 && (
-          <button
-            onClick={clearAllCategories}
-            className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
-          >
-            Clear All
-          </button>
-        )}
-      </div>
-      {selectedCategories.length > 0 && (
-        <div className="mt-2 text-sm text-gray-600">
-          Showing {displayedItems.length} of {items.length} clips
-        </div>
-      )}
     </div>
   );
 }

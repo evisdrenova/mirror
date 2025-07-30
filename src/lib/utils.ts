@@ -25,3 +25,5 @@ export function formatDateTime(
   const amPm = is24Hour ? "" : " a";
   return format(new Date(dateStr), `MM/dd/yyyy ${hourFormat}:mm:ss${amPm}`);
 }
+
+export const isUrl = (text: string) => /^https?:\/\/[^\s]+$/.test(text);
