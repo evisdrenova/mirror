@@ -76,7 +76,7 @@ export default function App() {
   return (
     <div>
       <div className="mx-20">
-        <div className="mb-6">
+        <div className="my-6">
           <h1 className="text-2xl font-bold text-gray-900">Mirror</h1>
         </div>
         <div className="mt-2">
@@ -123,7 +123,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
     setSelectedCategories([]);
   };
 
-  // Filter items based on selected categories
   const displayedItems =
     selectedCategories.length === 0
       ? items
@@ -131,7 +130,6 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
           (item) => item.category && selectedCategories.includes(item.category)
         );
 
-  // Calculate items per row (4 columns)
   const itemsPerRow = 4;
   const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
 
@@ -197,36 +195,13 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => toggleCategory(cat)}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                selectedCategories.includes(cat)
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-          {selectedCategories.length > 0 && (
-            <button
-              onClick={clearAllCategories}
-              className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
-            >
-              Clear All
-            </button>
-          )}
-        </div>
-        {selectedCategories.length > 0 && (
-          <div className="mt-2 text-sm text-gray-600">
-            Showing {displayedItems.length} of {items.length} clips
-          </div>
-        )}
-      </div>
+      <CategoryFilter
+        toggleCategory={toggleCategory}
+        selectedCategories={selectedCategories}
+        clearAllCategories={clearAllCategories}
+        displayedItems={displayedItems}
+        items={items}
+      />
       {displayedItems.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <p>No clips match the selected categories</p>
@@ -330,6 +305,57 @@ function ClipVirtualizer({ items }: ClipVirtualizerProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+interface CategoryFilterProps {
+  clearAllCategories: () => void;
+  selectedCategories: string[];
+  toggleCategory: (category: string) => void;
+  displayedItems: ClipItem[];
+  items: ClipItem[];
+}
+
+function CategoryFilter(props: CategoryFilterProps) {
+  const {
+    clearAllCategories,
+    selectedCategories,
+    toggleCategory,
+    displayedItems,
+    items,
+  } = props;
+
+  return (
+    <div className="mb-4">
+      <div className="flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => toggleCategory(cat)}
+            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              selectedCategories.includes(cat)
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+        {selectedCategories.length > 0 && (
+          <button
+            onClick={clearAllCategories}
+            className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+      {selectedCategories.length > 0 && (
+        <div className="mt-2 text-sm text-gray-600">
+          Showing {displayedItems.length} of {items.length} clips
+        </div>
+      )}
     </div>
   );
 }
