@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Dialog,
@@ -31,8 +31,31 @@ export default function GridVirtualizer({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ClipItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   const parentRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Calculate available height dynamically
+  useEffect(() => {
+    const calculateHeight = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        // Use more aggressive height calculation
+        const availableHeight = window.innerHeight - rect.top - 40; // Back to smaller margin
+        setContainerHeight(Math.max(500, availableHeight));
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(calculateHeight, 100);
+    window.addEventListener("resize", calculateHeight);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", calculateHeight);
+    };
+  }, [items]); // Re-calculate when items change
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -92,7 +115,7 @@ export default function GridVirtualizer({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col" ref={containerRef}>
       <CategoryFilter
         toggleCategory={toggleCategory}
         selectedCategories={selectedCategories}
@@ -100,6 +123,7 @@ export default function GridVirtualizer({
         displayedItems={displayedItems}
         items={items}
       />
+
       {displayedItems.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <p>No clips match the selected categories</p>
@@ -107,17 +131,19 @@ export default function GridVirtualizer({
       ) : (
         <div
           ref={parentRef}
-          className="w-full"
+          className="w-full "
           style={{
-            height: `600px`,
-            overflow: "auto",
+            height: `${containerHeight}px`,
+            overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           <div
             style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
+              height: `${rowVirtualizer.getTotalSize() + 80}px`,
               width: "100%",
               position: "relative",
+              paddingBottom: "80px", // Add padding at the bottom
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {

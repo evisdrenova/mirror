@@ -52,18 +52,23 @@ export default function App() {
   }, []);
 
   return (
-    <div>
-      <div className="mx-20">
-        <div className="my-6">
+    <div className="h-screen flex flex-col">
+      {" "}
+      {/* Add h-screen and flex */}
+      <div className="mx-20 flex-1 flex flex-col">
+        {" "}
+        {/* Add flex-1 and flex flex-col */}
+        <div className="my-6 flex-shrink-0">
+          {" "}
+          {/* Add flex-shrink-0 to prevent header shrinking */}
           <h1 className="text-2xl font-bold text-gray-900">Mirror</h1>
         </div>
-        <div className="mt-2">
+        <div className="flex-1 min-h-0">
+          {" "}
+          {/* Add flex-1 and min-h-0 */}
           {isLoadingItems ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-600 flex flex-row items-center gap-2">
-                <Spinner className="w-4" />
-                Loading clips...
-              </div>
+              <div className="text-gray-600">Loading clips...</div>
             </div>
           ) : (
             <GridVirtualizer items={items} getItems={getItems} />
