@@ -1,8 +1,6 @@
 use crate::llm;
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
-use core_graphics::event::CGEvent;
-use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 use enigo::{
     Direction::{Click, Press, Release},
     Enigo, Key, Keyboard, Settings,
@@ -11,10 +9,9 @@ use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread, time::Duration};
-use tauri::{
-    AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent,
-};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
+use url::Url;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Clip {
@@ -86,7 +83,34 @@ pub fn handle_capture(app: &AppHandle) {
                 }
             };
 
-            if let Err(e) = save_clip(&app_handle, &db_path, &clip_clone, &category).await {
+            let mut url_summary: String = String::new();
+
+            match &clip_clone {
+                Clip::Text { plain } => {
+                    if is_url(plain) {
+                        println!("this is a url");
+
+                        match llm::get_clip_summary(&clip_clone).await {
+                            Ok(suggested_summary) => url_summary = suggested_summary,
+                            Err(e) => {
+                                eprintln!("LLM summarization failed: {}", e);
+                                url_summary = "No summary available".to_string();
+                            }
+                        };
+                    }
+                }
+                _ => {}
+            }
+
+            // Now actually use the summary somewhere
+            if !url_summary.is_empty() {
+                println!("URL Summary: {}", url_summary);
+                // Or save it to database, return it, etc.
+            }
+
+            if let Err(e) =
+                save_clip(&app_handle, &db_path, &clip_clone, &category, &url_summary).await
+            {
                 eprintln!("Failed to save clip: {}", e);
             } else {
                 println!("Clip saved to category: {}", category);
@@ -94,6 +118,15 @@ pub fn handle_capture(app: &AppHandle) {
         });
     } else {
         println!("[clipper] Nothing captured (no selection or copy failed).");
+    }
+}
+
+pub fn is_url(text: &str) -> bool {
+    match Url::parse(text) {
+        Ok(url) => {
+            matches!(url.scheme(), "http" | "https")
+        }
+        Err(_) => false,
     }
 }
 
@@ -303,6 +336,7 @@ pub async fn save_clip(
     db_path: &PathBuf,
     clip: &Clip,
     category: &str,
+    summary: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let json_data = match clip {
         Clip::Text { plain } => {
@@ -310,6 +344,7 @@ pub async fn save_clip(
                 "type": "text",
                 "content": plain,
                 "category": category,
+                "summary": summary
             })
         }
         Clip::Image {
@@ -324,6 +359,7 @@ pub async fn save_clip(
                 "width": width,
                 "height": height,
                 "category": category,
+                "summary": summary
             })
         }
     };
@@ -331,8 +367,8 @@ pub async fn save_clip(
     let conn = Connection::open(db_path)?;
 
     conn.execute(
-        "INSERT INTO clips(clip, category) VALUES (?,?)",
-        params![json_data.to_string(), category],
+        "INSERT INTO clips(clip, category, summary) VALUES (?,?,?)",
+        params![json_data.to_string(), category, summary],
     )?;
 
     app_handle.emit("clip-saved", {}).unwrap();

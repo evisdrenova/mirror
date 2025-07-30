@@ -1,7 +1,7 @@
 use crate::shortcut::Clip;
 use async_openai::{
     types::responses::{
-        CreateResponseArgs, Input, InputItem, InputMessageArgs, OutputContent, Role,
+        Content, CreateResponseArgs, Input, InputItem, InputMessageArgs, OutputContent, Role,
     },
     Client,
 };
@@ -21,8 +21,6 @@ pub async fn get_llm_category(clip: &Clip) -> Result<String, Box<dyn std::error:
             return Ok("image".to_string());
         }
     };
-
-    println!("calling llm for categorization");
 
     let system_prompt = r#"You are a clipboard content categorizer. Your job is to categorize text content into high-level categories.
 
@@ -91,9 +89,66 @@ Examples:
     Ok("other".to_string())
 }
 
-fn extract_content_from_output(output: &OutputContent) -> Option<String> {
-    use async_openai::types::responses::{Content, OutputContent};
+pub async fn get_clip_summary(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
+    let client = Client::new();
 
+    let content = match clip {
+        Clip::Text { plain } => {
+            if plain.len() > 2000 {
+                format!("{}...", &plain[..2000])
+            } else {
+                plain.clone()
+            }
+        }
+        Clip::Image { .. } => {
+            return Ok("image".to_string());
+        }
+    };
+
+    let system_prompt = r#"You are a concise summarization assistant.
+Provide a clear, bullet-point summary of the key points.
+Do not include citations or extra commentary."#;
+    let user_prompt = format!(
+        "Please summarize the following content. If it came from a URL, provide a short overview of the page's main points.\n\n{:?}",
+        content
+    );
+
+    let request = CreateResponseArgs::default()
+        // .max_output_tokens(50u32)
+        .model("gpt-4.1")
+        .input(Input::Items(vec![
+            InputItem::Message(
+                InputMessageArgs::default()
+                    .role(Role::System)
+                    .content(system_prompt)
+                    .build()?,
+            ),
+            InputItem::Message(
+                InputMessageArgs::default()
+                    .role(Role::User)
+                    .content(user_prompt)
+                    .build()?,
+            ),
+        ]))
+        .build()?;
+
+    let response = client.responses().create(request).await?;
+
+    for output in response.output {
+        if let Some(content) = extract_content_from_output(&output) {
+            let summary = content.trim(); // Don't convert to lowercase!
+
+            if !summary.is_empty() {
+                println!("LLM summary: {}", summary);
+                return Ok(summary.to_string());
+            }
+        }
+    }
+
+    Ok("No summary available".to_string())
+}
+
+fn extract_content_from_output(output: &OutputContent) -> Option<String> {
     match output {
         OutputContent::Message(message) => {
             for content_item in &message.content {
@@ -101,10 +156,7 @@ fn extract_content_from_output(output: &OutputContent) -> Option<String> {
                     Content::OutputText(output_text) => {
                         return Some(output_text.text.clone());
                     }
-                    Content::Refusal(_) => {
-                        // Model refused to respond
-                        continue;
-                    }
+                    _ => continue,
                 }
             }
             None

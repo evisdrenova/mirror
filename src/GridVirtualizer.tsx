@@ -259,6 +259,9 @@ function ClipDialog(props: ClipDialogProps) {
               <div className="mb-4 max-h-96 overflow-auto">
                 {renderClipContent(selectedItem.clip)}
               </div>
+              <div className="mb-4 max-h-96 overflow-auto">
+                {selectedItem.summary}
+              </div>
               <div className="text-xs text-gray-500">
                 Created: {formatDateTime(selectedItem.created_at)}
               </div>
