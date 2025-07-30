@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Dialog,
@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatDateTime, isUrl } from "./lib/utils";
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
 import { Button } from "./components/ui/button";
-import { Trash } from "lucide-react";
+import { Trash, Search, X } from "lucide-react";
 import CategoryFilter from "./CategoryFilters";
 import { ClipItem } from "./App";
 
@@ -32,6 +32,7 @@ export default function GridVirtualizer({
   const [selectedItem, setSelectedItem] = useState<ClipItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [containerHeight, setContainerHeight] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const parentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,12 +70,43 @@ export default function GridVirtualizer({
     setSelectedCategories([]);
   };
 
-  const displayedItems =
-    selectedCategories.length === 0
-      ? items
-      : items.filter(
-          (item) => item.category && selectedCategories.includes(item.category)
-        );
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
+  // Memoized filtering to prevent unnecessary re-renders
+  const displayedItems = useMemo(() => {
+    let filtered = items;
+
+    // First apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        // Search in text content
+        if (item.clip.Text?.plain) {
+          return item.clip.Text.plain.toLowerCase().includes(query);
+        }
+        // Search in summary if available
+        if (item.summary) {
+          return item.summary.toLowerCase().includes(query);
+        }
+        // Search in category
+        if (item.category) {
+          return item.category.toLowerCase().includes(query);
+        }
+        return false;
+      });
+    }
+
+    // Then apply category filter
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(
+        (item) => item.category && selectedCategories.includes(item.category)
+      );
+    }
+
+    return filtered;
+  }, [items, searchQuery, selectedCategories]);
 
   const itemsPerRow = 4;
   const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
@@ -116,6 +148,34 @@ export default function GridVirtualizer({
 
   return (
     <div className="w-full h-full flex flex-col" ref={containerRef}>
+      {/* Search Bar */}
+      <div className="mb-4 px-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search clips..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="mt-2 text-xs text-gray-500">
+            {displayedItems.length} result
+            {displayedItems.length !== 1 ? "s" : ""} found
+          </div>
+        )}
+      </div>
+
       <CategoryFilter
         toggleCategory={toggleCategory}
         selectedCategories={selectedCategories}
@@ -126,7 +186,33 @@ export default function GridVirtualizer({
 
       {displayedItems.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
-          <p>No clips match the selected categories</p>
+          {searchQuery || selectedCategories.length > 0 ? (
+            <div>
+              <p>No clips match your search criteria</p>
+              {(searchQuery || selectedCategories.length > 0) && (
+                <div className="mt-2 space-x-2">
+                  {searchQuery && (
+                    <button
+                      onClick={clearSearch}
+                      className="text-blue-600 hover:text-blue-800 text-sm underline"
+                    >
+                      Clear search
+                    </button>
+                  )}
+                  {selectedCategories.length > 0 && (
+                    <button
+                      onClick={clearAllCategories}
+                      className="text-blue-600 hover:text-blue-800 text-sm underline"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p>No clips to display</p>
+          )}
         </div>
       ) : (
         <div
@@ -177,13 +263,13 @@ export default function GridVirtualizer({
                         <div className="flex flex-row justify-between">
                           <div className="mb-2">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {item.category || "Uncategorized"}
+                              {item.category || "Other"}
                             </span>
                           </div>
                           <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
                         </div>
                         <div className="flex-1 mb-2">
-                          {renderClipContent(item.clip)}
+                          {renderClipContent(item.clip, true, searchQuery)}
                         </div>
                         <div className="text-xs text-gray-500 mt-auto">
                           {formatDateTime(item.created_at)}
@@ -204,6 +290,7 @@ export default function GridVirtualizer({
         selectedItem={selectedItem}
         handleDelete={handleDelete}
         isDeleting={isDeleting}
+        searchQuery={searchQuery}
       />
     </div>
   );
@@ -215,11 +302,18 @@ interface ClipDialogProps {
   selectedItem: ClipItem | null;
   handleDelete: (itemId: string) => Promise<void>;
   isDeleting: boolean;
+  searchQuery?: string;
 }
 
 function ClipDialog(props: ClipDialogProps) {
-  const { dialogOpen, setDialogOpen, selectedItem, handleDelete, isDeleting } =
-    props;
+  const {
+    dialogOpen,
+    setDialogOpen,
+    selectedItem,
+    handleDelete,
+    isDeleting,
+    searchQuery,
+  } = props;
 
   console.log("selected item", selectedItem?.clip);
   return (
@@ -233,7 +327,7 @@ function ClipDialog(props: ClipDialogProps) {
             <>
               <div className="mb-4 flex items-center justify-between">
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {selectedItem.category || "Uncategorized"}
+                  {selectedItem.category || "Other"}
                 </span>
                 <Button
                   onClick={(e) => {
@@ -264,7 +358,7 @@ function ClipDialog(props: ClipDialogProps) {
                 <h4 className="text-sm font-medium text-gray-700 mb-2">
                   Content:
                 </h4>
-                {renderClipContent(selectedItem.clip, false)}
+                {renderClipContent(selectedItem.clip, false, searchQuery)}
               </div>
 
               {/* Summary if available */}
@@ -274,7 +368,7 @@ function ClipDialog(props: ClipDialogProps) {
                     Summary:
                   </h4>
                   <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                    {selectedItem.summary}
+                    {highlightSearchTerm(selectedItem.summary, searchQuery)}
                   </p>
                 </div>
               )}
@@ -297,9 +391,38 @@ function ClipDialog(props: ClipDialogProps) {
   );
 }
 
+// Helper function to highlight search terms
+const highlightSearchTerm = (text: string, searchQuery?: string) => {
+  if (!searchQuery || !searchQuery.trim()) {
+    return text;
+  }
+
+  const query = searchQuery.trim();
+  const regex = new RegExp(
+    `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+    "gi"
+  );
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        regex.test(part) ? (
+          <mark key={index} className="bg-yellow-200 px-1 rounded">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
 const renderClipContent = (
   clip: ClipItem["clip"],
-  truncate: boolean = true
+  truncate: boolean = true,
+  searchQuery?: string
 ) => {
   if (clip.Text?.plain) {
     const text = clip.Text.plain;
@@ -317,7 +440,9 @@ const renderClipContent = (
             title={text}
             onClick={(e) => e.stopPropagation()}
           >
-            {text}
+            {searchQuery && !truncate
+              ? highlightSearchTerm(text, searchQuery)
+              : text}
           </a>
         </div>
       );
@@ -329,7 +454,9 @@ const renderClipContent = (
           }`}
           title={truncate ? text : undefined}
         >
-          {text}
+          {searchQuery && !truncate
+            ? highlightSearchTerm(text, searchQuery)
+            : text}
         </p>
       );
     }

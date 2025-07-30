@@ -79,7 +79,7 @@ pub fn handle_capture(app: &AppHandle) {
                 Ok(suggested_category) => suggested_category,
                 Err(e) => {
                     eprintln!("LLM categorization failed: {}", e);
-                    "Uncategorized".to_string()
+                    "Other".to_string()
                 }
             };
 

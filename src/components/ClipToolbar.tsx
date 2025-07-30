@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Check, X } from "lucide-react";
 import Spinner from "./Spinner";
 import { CategoryInput } from "./CategoryCombobox";
-import { categories } from "../App";
+import { categories } from "../CategoryFilters";
 
 interface ClipContext {
   suggested_category?: string;
@@ -41,9 +41,7 @@ export const ClipToolbar: React.FC = () => {
     try {
       await invoke("submit_clip", {
         userCategory:
-          userCategory.trim() ||
-          clipData?.suggested_category ||
-          "uncategorized",
+          userCategory.trim() || clipData?.suggested_category || "Other",
         clipJson: JSON.stringify(clipData?.clip),
       });
     } catch (error) {
