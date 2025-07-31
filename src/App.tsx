@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import "./globals.css";
 import { errorToast } from "./components/ui/toast";
 import GridVirtualizer from "./GridVirtualizer";
+import { ViewNoneIcon } from "@radix-ui/react-icons";
 
 export interface ClipItem {
   id: string;
@@ -55,8 +56,8 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col">
       <div className="mx-20 flex-1 flex flex-col">
-        <div className="my-6 flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900 px-2">Mirror</h1>
+        <div className="my-6 flex-shrink-0 pl-2 ">
+          <ViewNoneIcon className="w-6 h-6" />
         </div>
         <div className="flex-1 min-h-0">
           {isLoadingItems ? (

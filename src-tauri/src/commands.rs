@@ -132,25 +132,14 @@ pub async fn submit_clip(
     Ok(())
 }
 
-// #[tauri::command]
-// pub fn close_toolbar_window(app_handle: tauri::AppHandle) -> Result<(), String> {
-//     if let Some(window) = app_handle.get_webview_window("clip-toolbar") {
-//         window.close().map_err(|e| e.to_string())?;
-//     }
-//     Ok(())
-// }
-
 #[tauri::command]
 pub fn delete_item(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
-    item_id: i64,
+    item_id: String,
 ) -> Result<(), String> {
-    println!("here");
     let conn =
         Connection::open(&state.db_path).map_err(|e| format!("Failed to open database: {e}"))?;
-
-    println!("itemid{}", item_id);
 
     let rows_affected = conn
         .execute("DELETE FROM clips WHERE id = ?", params![item_id])
@@ -166,3 +155,11 @@ pub fn delete_item(
 
     Ok(())
 }
+
+// #[tauri::command]
+// pub fn close_toolbar_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+//     if let Some(window) = app_handle.get_webview_window("clip-toolbar") {
+//         window.close().map_err(|e| e.to_string())?;
+//     }
+//     Ok(())
+// }

@@ -3,17 +3,9 @@ import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatDateTime } from "./lib/utils";
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
-
 import { Badge } from "./components/ui/badge";
 import { renderClipContent } from "./GridVirtualizer";
-import {
-  Calendar,
-  CalendarDaysIcon,
-  Folder,
-  Tag,
-  TagIcon,
-  Tags,
-} from "lucide-react";
+import { Calendar, Folder, Tags } from "lucide-react";
 
 interface ClipCardProps {
   containerHeight: number;
@@ -80,7 +72,7 @@ export default function ClipCard(props: ClipCardProps) {
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <div className="grid grid-cols-4 gap-4 p-2 h-full">
+              <div className="grid grid-cols-4 gap-2 p-2 h-full">
                 {rowItems.map((item) => (
                   <div
                     key={item.id}
@@ -113,7 +105,7 @@ export default function ClipCard(props: ClipCardProps) {
                       </div>
                       <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
                     </div>
-                    <div className="flex-1 mb-2">
+                    <div className=" flex-1 my-2 max-h-96 overflow-auto border rounded p-3 bg-gray-50">
                       {renderClipContent(
                         item.clip,
                         true,
@@ -121,7 +113,7 @@ export default function ClipCard(props: ClipCardProps) {
                         item.category
                       )}
                     </div>
-                    <div className="text-xs text-gray-400 mt-auto flex flex-row items-center gap-1">
+                    <div className="text-xs text-[10px] text-gray-400 mt-auto flex flex-row items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {formatDateTime(item.created_at)}
                     </div>

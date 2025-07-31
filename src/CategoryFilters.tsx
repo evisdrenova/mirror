@@ -45,7 +45,7 @@ export default function CategoryFilter(props: CategoryFilterProps) {
             className={`px-3 py-1 rounded-md text-xs ${
               selectedCategories.includes(cat)
                 ? "bg-black text-white hover:bg-gray-700 hover:text-white"
-                : "bg-transparent text-gray-800 hover:bg-gray-200"
+                : "bg-transparent text-gray-800 hover:bg-gray-100"
             }`}
           >
             {cat}

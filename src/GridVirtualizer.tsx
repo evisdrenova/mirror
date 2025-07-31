@@ -1,13 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
-import rehypeHighlight from "rehype-highlight";
-import remarkGfm from "remark-gfm";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "./globals.css";
 import { errorToast, successToast } from "./components/ui/toast";
 import { isUrl } from "./lib/utils";
@@ -315,51 +309,7 @@ export const renderClipContent = (
     } else {
       return (
         <div className={truncate ? "line-clamp-3" : ""}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
-            components={{
-              // Custom components for better styling
-              p: ({ children }) => (
-                <p className="text-sm text-gray-900 mb-2 last:mb-0">
-                  {children}
-                </p>
-              ),
-              code: ({ children, className }) => {
-                const match = /language-(\w+)/.exec(className || "");
-                const language = match ? match[1] : "";
-
-                if (language) {
-                  return (
-                    <SyntaxHighlighter
-                      language={language}
-                      style={oneDark}
-                      customStyle={{ fontSize: "0.75rem", margin: "0.5rem 0" }}
-                    >
-                      {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
-                  );
-                }
-
-                return (
-                  <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">
-                    {children}
-                  </code>
-                );
-              },
-              pre: ({ children }) => <div className="my-2">{children}</div>,
-            }}
-          >
-            {searchQuery && !truncate
-              ? text.replace(
-                  new RegExp(
-                    `(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-                    "gi"
-                  ),
-                  "**$1**"
-                )
-              : text}
-          </ReactMarkdown>
+          <span className="text-xs text-gray-500">{text}</span>
         </div>
       );
     }
@@ -376,5 +326,9 @@ export const renderClipContent = (
     );
   }
 
-  return <span className="text-sm text-gray-500">Unknown clip type</span>;
+  return (
+    <div className="border border-gray-200 p-2">
+      <span className="text-sm text-gray-500">Unknown Clip</span>
+    </div>
+  );
 };

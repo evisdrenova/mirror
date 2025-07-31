@@ -8,7 +8,7 @@ import {
 } from "./components/ui/dialog";
 import "./globals.css";
 import { formatDateTime } from "./lib/utils";
-import { Trash } from "lucide-react";
+import { Calendar, Folder, Tags, Trash } from "lucide-react";
 import { ClipItem } from "./App";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
@@ -43,9 +43,33 @@ export default function ClipDialog(props: ClipDialogProps) {
           {selectedItem && (
             <div>
               <div className="mb-4 flex items-center justify-between">
-                <Badge variant="secondary">
-                  {selectedItem.category || "Other"}
-                </Badge>
+                <div className="flex flex-row justify-between">
+                  <div className="mb-2 flex flex-col gap-2">
+                    <div className="flex flex-row items-center gap-1 text-xs">
+                      <Folder className="w-3 h-3 text-gray-500" />
+                      <Badge className="bg-gray-100 text-[10px] text-gray-800 border border-gray-300">
+                        {selectedItem.category || "Other"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-row items-center gap-1">
+                      <Tags className="w-3 h-3 text-gray-500" />
+                      {selectedItem.tags &&
+                        selectedItem.tags.map((t) => (
+                          <Badge
+                            className="bg-blue-100 text-blue-800 text-[10px] rounded-full py-0"
+                            key={t}
+                          >
+                            {t}
+                          </Badge>
+                        ))}
+                    </div>
+
+                    <div className="text-[10px] text-gray-400 mt-auto flex flex-row items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {formatDateTime(selectedItem.created_at)}
+                    </div>
+                  </div>
+                </div>
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -86,10 +110,6 @@ export default function ClipDialog(props: ClipDialogProps) {
                   </p>
                 </div>
               )}
-
-              <div className="text-xs text-gray-500 flex items-end">
-                Created: {formatDateTime(selectedItem.created_at)}
-              </div>
             </div>
           )}
         </div>
