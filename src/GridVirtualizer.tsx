@@ -228,7 +228,7 @@ export default function GridVirtualizer({
 
 const CodeBlock = ({
   code,
-  language = "text",
+  language = "typescript",
   truncate = false,
 }: {
   code: string;
@@ -294,7 +294,7 @@ export const renderClipContent = (
             href={text}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-blue-600 hover:text-blue-800 underline text-sm break-all"
+            className="font-medium text-blue-600 hover:text-blue-800 underline text-xs break-all"
             title={text}
             onClick={(e) => e.stopPropagation()}
           >
