@@ -55,7 +55,7 @@ export default function App() {
     <div className="h-screen flex flex-col">
       <div className="mx-20 flex-1 flex flex-col">
         <div className="my-6 flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900">Mirror</h1>
+          <h1 className="text-2xl font-bold text-gray-900 px-2">Mirror</h1>
         </div>
         <div className="flex-1 min-h-0">
           {isLoadingItems ? (

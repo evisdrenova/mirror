@@ -10,7 +10,7 @@ interface CategoryFilterProps {
 }
 
 export const categories = [
-  "code",
+  "code_snippet",
   "technical_advice",
   "documentation",
   "url",

@@ -1,5 +1,13 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import {
   Dialog,
   DialogContent,
@@ -38,18 +46,15 @@ export default function GridVirtualizer({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate available height dynamically
   useEffect(() => {
     const calculateHeight = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        // Use more aggressive height calculation
-        const availableHeight = window.innerHeight - rect.top - 40; // Back to smaller margin
+        const availableHeight = window.innerHeight - rect.top - 40;
         setContainerHeight(Math.max(500, availableHeight));
       }
     };
 
-    // Small delay to ensure DOM is ready
     const timer = setTimeout(calculateHeight, 100);
     window.addEventListener("resize", calculateHeight);
 
@@ -57,7 +62,7 @@ export default function GridVirtualizer({
       clearTimeout(timer);
       window.removeEventListener("resize", calculateHeight);
     };
-  }, [items]); // Re-calculate when items change
+  }, [items]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -246,13 +251,13 @@ function ClipDialog(props: ClipDialogProps) {
         <DialogHeader>
           <DialogTitle>Clip Details</DialogTitle>
         </DialogHeader>
-        <div className="p-4">
+        <div className="">
           {selectedItem && (
-            <>
+            <div>
               <div className="mb-4 flex items-center justify-between">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <Badge variant="secondary">
                   {selectedItem.category || "Other"}
-                </span>
+                </Badge>
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -277,10 +282,12 @@ function ClipDialog(props: ClipDialogProps) {
                 </Button>
               </div>
               <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-gray-50">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Content:
-                </h4>
-                {renderClipContent(selectedItem.clip, false, searchQuery)}
+                {renderClipContent(
+                  selectedItem.clip,
+                  false,
+                  searchQuery,
+                  selectedItem.category
+                )}
               </div>
               {selectedItem.summary && (
                 <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-blue-50">
@@ -293,10 +300,10 @@ function ClipDialog(props: ClipDialogProps) {
                 </div>
               )}
 
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 flex items-end">
                 Created: {formatDateTime(selectedItem.created_at)}
               </div>
-            </>
+            </div>
           )}
         </div>
         <DialogFooter>
@@ -337,13 +344,66 @@ const highlightSearchTerm = (text: string, searchQuery?: string) => {
   );
 };
 
+const CodeBlock = ({
+  code,
+  language = "text",
+  truncate = false,
+}: {
+  code: string;
+  language?: string;
+  truncate?: boolean;
+}) => {
+  const lines = code.split("\n");
+  const displayCode =
+    truncate && lines.length > 3
+      ? lines.slice(0, 3).join("\n") + "\n..."
+      : code;
+
+  return (
+    <div
+      className={`relative rounded-md overflow-hidden border  ${
+        truncate ? "max-h-24" : "max-h-96"
+      }`}
+    >
+      <SyntaxHighlighter
+        language={language}
+        style={oneLight}
+        customStyle={{
+          margin: 0,
+          fontSize: "10px",
+          padding: "8px",
+          whiteSpace: "pre-wrap !important",
+          width: "100%",
+          maxWidth: "100%",
+        }}
+        wrapLongLines={true}
+        PreTag="div"
+        CodeTag="code"
+        codeTagProps={{
+          style: {
+            whiteSpace: "pre-wrap !important",
+            display: "block",
+          },
+        }}
+      >
+        {displayCode}
+      </SyntaxHighlighter>
+    </div>
+  );
+};
+
 const renderClipContent = (
   clip: ClipItem["clip"],
   truncate: boolean = true,
-  searchQuery?: string
+  searchQuery?: string,
+  category?: string
 ) => {
   if (clip.Text?.plain) {
     const text = clip.Text.plain;
+
+    if (category === "code_snippet") {
+      return <CodeBlock code={text} truncate={truncate} />;
+    }
 
     if (isUrl(text)) {
       return (
@@ -366,16 +426,53 @@ const renderClipContent = (
       );
     } else {
       return (
-        <p
-          className={`text-sm text-gray-900 ${
-            truncate ? "line-clamp-3" : "whitespace-pre-wrap"
-          }`}
-          title={truncate ? text : undefined}
-        >
-          {searchQuery && !truncate
-            ? highlightSearchTerm(text, searchQuery)
-            : text}
-        </p>
+        <div className={truncate ? "line-clamp-3" : ""}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+            components={{
+              // Custom components for better styling
+              p: ({ children }) => (
+                <p className="text-sm text-gray-900 mb-2 last:mb-0">
+                  {children}
+                </p>
+              ),
+              code: ({ children, className }) => {
+                const match = /language-(\w+)/.exec(className || "");
+                const language = match ? match[1] : "";
+
+                if (language) {
+                  return (
+                    <SyntaxHighlighter
+                      language={language}
+                      style={oneDark}
+                      customStyle={{ fontSize: "0.75rem", margin: "0.5rem 0" }}
+                    >
+                      {String(children).replace(/\n$/, "")}
+                    </SyntaxHighlighter>
+                  );
+                }
+
+                return (
+                  <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">
+                    {children}
+                  </code>
+                );
+              },
+              pre: ({ children }) => <div className="my-2">{children}</div>,
+            }}
+          >
+            {searchQuery && !truncate
+              ? text.replace(
+                  new RegExp(
+                    `(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+                    "gi"
+                  ),
+                  "**$1**"
+                )
+              : text}
+          </ReactMarkdown>
+        </div>
       );
     }
   }
@@ -471,12 +568,19 @@ function ClipCard(props: ClipCardProps) {
                   >
                     <div className="flex flex-row justify-between">
                       <div className="mb-2">
-                        <Badge>{item.category || "Other"}</Badge>
+                        <Badge variant="secondary">
+                          {item.category || "Other"}
+                        </Badge>
                       </div>
                       <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
                     </div>
                     <div className="flex-1 mb-2">
-                      {renderClipContent(item.clip, true, searchQuery)}
+                      {renderClipContent(
+                        item.clip,
+                        true,
+                        searchQuery,
+                        item.category
+                      )}
                     </div>
                     <div className="text-xs text-gray-500 mt-auto">
                       {formatDateTime(item.created_at)}
