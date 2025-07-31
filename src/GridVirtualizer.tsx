@@ -10,7 +10,7 @@ import CategoryFilter from "./CategoryFilters";
 import { ClipItem } from "./App";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import ClipCard from "./ClipCard";
+import ClipCard from "./ClipCards";
 import ClipDialog, { highlightSearchTerm } from "./ClipDialog";
 
 interface GridVirtualizerProps {
