@@ -35,7 +35,7 @@ export default function CategoryFilter(props: CategoryFilterProps) {
   } = props;
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 mx-2">
       <div className="flex flex-wrap gap-1">
         {categories.map((cat) => (
           <Button

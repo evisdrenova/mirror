@@ -14,8 +14,23 @@ export function formatDateTime(
     return undefined;
   }
 
-  // checks to make sure that the string can be transformed into a valid date
-  const date = new Date(dateStr);
+  let date: Date;
+
+  if (dateStr instanceof Date) {
+    date = dateStr;
+  } else if (typeof dateStr === "number") {
+    date = new Date(dateStr);
+  } else {
+    if (typeof dateStr === "string") {
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+        date = new Date(dateStr + "Z");
+      } else {
+        date = new Date(dateStr);
+      }
+    } else {
+      date = new Date(dateStr);
+    }
+  }
 
   if (isNaN(date.getTime())) {
     return undefined;
@@ -23,7 +38,7 @@ export function formatDateTime(
 
   const hourFormat = is24Hour ? "HH" : "hh";
   const amPm = is24Hour ? "" : " a";
-  return format(new Date(dateStr), `MM/dd/yyyy ${hourFormat}:mm:ss${amPm}`);
-}
 
+  return format(date, `MM/dd/yyyy ${hourFormat}:mm:ss${amPm}`);
+}
 export const isUrl = (text: string) => /^https?:\/\/[^\s]+$/.test(text);

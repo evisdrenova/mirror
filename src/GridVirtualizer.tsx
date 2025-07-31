@@ -13,11 +13,12 @@ import { errorToast, successToast } from "./components/ui/toast";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatDateTime, isUrl } from "./lib/utils";
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
-import { Trash, Search, X } from "lucide-react";
+import { Trash, X } from "lucide-react";
 import CategoryFilter from "./CategoryFilters";
 import { ClipItem } from "./App";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { Badge } from "./components/ui/badge";
 
 interface GridVirtualizerProps {
   items: ClipItem[];
@@ -35,7 +36,6 @@ export default function GridVirtualizer({
   const [containerHeight, setContainerHeight] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const parentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Calculate available height dynamically
@@ -109,16 +109,6 @@ export default function GridVirtualizer({
     return filtered;
   }, [items, searchQuery, selectedCategories]);
 
-  const itemsPerRow = 4;
-  const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
-
-  const rowVirtualizer = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 200,
-    overscan: 2,
-  });
-
   const handleDelete = async (itemId: string) => {
     if (isDeleting) return;
 
@@ -149,7 +139,7 @@ export default function GridVirtualizer({
 
   return (
     <div className="w-full h-full flex flex-col" ref={containerRef}>
-      <div className="mb-4">
+      <div className="mb-4 mx-2">
         <div className="relative flex flex-row items center gap-2">
           <Input
             type="text"
@@ -210,73 +200,13 @@ export default function GridVirtualizer({
           )}
         </div>
       ) : (
-        <div
-          ref={parentRef}
-          className="w-full "
-          style={{
-            height: `${containerHeight}px`,
-            overflowY: "auto",
-            overflowX: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize() + 80}px`,
-              width: "100%",
-              position: "relative",
-              paddingBottom: "80px", // Add padding at the bottom
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const rowIndex = virtualRow.index;
-              const startIndex = rowIndex * itemsPerRow;
-              const endIndex = Math.min(
-                startIndex + itemsPerRow,
-                displayedItems.length
-              );
-              const rowItems = displayedItems.slice(startIndex, endIndex);
-
-              return (
-                <div
-                  key={virtualRow.key}
-                  className="absolute top-0 left-0 w-full"
-                  style={{
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <div className="grid grid-cols-4 gap-4 p-2 h-full">
-                    {rowItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-                        onClick={() => {
-                          setSelectedItem(item);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <div className="flex flex-row justify-between">
-                          <div className="mb-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {item.category || "Other"}
-                            </span>
-                          </div>
-                          <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
-                        </div>
-                        <div className="flex-1 mb-2">
-                          {renderClipContent(item.clip, true, searchQuery)}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-auto">
-                          {formatDateTime(item.created_at)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <ClipCard
+          displayedItems={displayedItems}
+          containerHeight={containerHeight}
+          setSelectedItem={setSelectedItem}
+          setDialogOpen={setDialogOpen}
+          searchQuery={searchQuery}
+        />
       )}
 
       <ClipDialog
@@ -310,7 +240,6 @@ function ClipDialog(props: ClipDialogProps) {
     searchQuery,
   } = props;
 
-  console.log("selected item", selectedItem?.clip);
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-3xl">
@@ -347,16 +276,12 @@ function ClipDialog(props: ClipDialogProps) {
                   )}
                 </Button>
               </div>
-
-              {/* Full clip content - no truncation */}
               <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-gray-50">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">
                   Content:
                 </h4>
                 {renderClipContent(selectedItem.clip, false, searchQuery)}
               </div>
-
-              {/* Summary if available */}
               {selectedItem.summary && (
                 <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-blue-50">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">
@@ -468,3 +393,101 @@ const renderClipContent = (
 
   return <span className="text-sm text-gray-500">Unknown clip type</span>;
 };
+
+interface ClipCardProps {
+  containerHeight: number;
+  displayedItems: ClipItem[];
+  setSelectedItem: (val: ClipItem) => void;
+  setDialogOpen: (val: boolean) => void;
+  searchQuery: string;
+}
+
+function ClipCard(props: ClipCardProps) {
+  const {
+    containerHeight,
+    displayedItems,
+    setSelectedItem,
+    setDialogOpen,
+    searchQuery,
+  } = props;
+
+  const itemsPerRow = 4;
+  const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 200,
+    overscan: 2,
+  });
+
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div
+      ref={parentRef}
+      className="w-full "
+      style={{
+        height: `${containerHeight}px`,
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize() + 80}px`,
+          width: "100%",
+          position: "relative",
+          paddingBottom: "80px",
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const rowIndex = virtualRow.index;
+          const startIndex = rowIndex * itemsPerRow;
+          const endIndex = Math.min(
+            startIndex + itemsPerRow,
+            displayedItems.length
+          );
+          const rowItems = displayedItems.slice(startIndex, endIndex);
+
+          return (
+            <div
+              key={virtualRow.key}
+              className="absolute top-0 left-0 w-full"
+              style={{
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <div className="grid grid-cols-4 gap-4 p-2 h-full">
+                {rowItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <div className="flex flex-row justify-between">
+                      <div className="mb-2">
+                        <Badge>{item.category || "Other"}</Badge>
+                      </div>
+                      <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
+                    </div>
+                    <div className="flex-1 mb-2">
+                      {renderClipContent(item.clip, true, searchQuery)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-auto">
+                      {formatDateTime(item.created_at)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
