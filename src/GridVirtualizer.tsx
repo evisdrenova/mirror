@@ -8,25 +8,16 @@ import {
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "./components/ui/dialog";
 import "./globals.css";
 import { errorToast, successToast } from "./components/ui/toast";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { formatDateTime, isUrl } from "./lib/utils";
-import { ArrowTopRightIcon } from "@radix-ui/react-icons";
-import { Trash, X } from "lucide-react";
+import { isUrl } from "./lib/utils";
+import { X } from "lucide-react";
 import CategoryFilter from "./CategoryFilters";
 import { ClipItem } from "./App";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { Badge } from "./components/ui/badge";
+import ClipCard from "./ClipCard";
+import ClipDialog, { highlightSearchTerm } from "./ClipDialog";
 
 interface GridVirtualizerProps {
   items: ClipItem[];
@@ -226,124 +217,6 @@ export default function GridVirtualizer({
   );
 }
 
-interface ClipDialogProps {
-  dialogOpen: boolean;
-  setDialogOpen: (val: boolean) => void;
-  selectedItem: ClipItem | null;
-  handleDelete: (itemId: string) => Promise<void>;
-  isDeleting: boolean;
-  searchQuery?: string;
-}
-
-function ClipDialog(props: ClipDialogProps) {
-  const {
-    dialogOpen,
-    setDialogOpen,
-    selectedItem,
-    handleDelete,
-    isDeleting,
-    searchQuery,
-  } = props;
-
-  return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Clip Details</DialogTitle>
-        </DialogHeader>
-        <div className="">
-          {selectedItem && (
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <Badge variant="secondary">
-                  {selectedItem.category || "Other"}
-                </Badge>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(selectedItem.id);
-                  }}
-                  disabled={isDeleting}
-                  variant="destructive"
-                  size="sm"
-                  className="ml-2"
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash className="h-4 w-4 mr-1" />
-                      Delete
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-gray-50">
-                {renderClipContent(
-                  selectedItem.clip,
-                  false,
-                  searchQuery,
-                  selectedItem.category
-                )}
-              </div>
-              {selectedItem.summary && (
-                <div className="mb-4 max-h-96 overflow-auto border rounded p-3 bg-blue-50">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">
-                    Summary:
-                  </h4>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                    {highlightSearchTerm(selectedItem.summary, searchQuery)}
-                  </p>
-                </div>
-              )}
-
-              <div className="text-xs text-gray-500 flex items-end">
-                Created: {formatDateTime(selectedItem.created_at)}
-              </div>
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button>Close</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Helper function to highlight search terms
-const highlightSearchTerm = (text: string, searchQuery?: string) => {
-  if (!searchQuery || !searchQuery.trim()) {
-    return text;
-  }
-
-  const query = searchQuery.trim();
-  const regex = new RegExp(
-    `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-    "gi"
-  );
-  const parts = text.split(regex);
-
-  return (
-    <>
-      {parts.map((part, index) =>
-        regex.test(part) ? (
-          <mark key={index} className="bg-yellow-200 px-1 rounded">
-            {part}
-          </mark>
-        ) : (
-          part
-        )
-      )}
-    </>
-  );
-};
-
 const CodeBlock = ({
   code,
   language = "text",
@@ -392,7 +265,7 @@ const CodeBlock = ({
   );
 };
 
-const renderClipContent = (
+export const renderClipContent = (
   clip: ClipItem["clip"],
   truncate: boolean = true,
   searchQuery?: string,
@@ -490,108 +363,3 @@ const renderClipContent = (
 
   return <span className="text-sm text-gray-500">Unknown clip type</span>;
 };
-
-interface ClipCardProps {
-  containerHeight: number;
-  displayedItems: ClipItem[];
-  setSelectedItem: (val: ClipItem) => void;
-  setDialogOpen: (val: boolean) => void;
-  searchQuery: string;
-}
-
-function ClipCard(props: ClipCardProps) {
-  const {
-    containerHeight,
-    displayedItems,
-    setSelectedItem,
-    setDialogOpen,
-    searchQuery,
-  } = props;
-
-  const itemsPerRow = 4;
-  const rowCount = Math.ceil(displayedItems.length / itemsPerRow);
-
-  const rowVirtualizer = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 200,
-    overscan: 2,
-  });
-
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div
-      ref={parentRef}
-      className="w-full "
-      style={{
-        height: `${containerHeight}px`,
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
-      <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize() + 80}px`,
-          width: "100%",
-          position: "relative",
-          paddingBottom: "80px",
-        }}
-      >
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const rowIndex = virtualRow.index;
-          const startIndex = rowIndex * itemsPerRow;
-          const endIndex = Math.min(
-            startIndex + itemsPerRow,
-            displayedItems.length
-          );
-          const rowItems = displayedItems.slice(startIndex, endIndex);
-
-          return (
-            <div
-              key={virtualRow.key}
-              className="absolute top-0 left-0 w-full"
-              style={{
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <div className="grid grid-cols-4 gap-4 p-2 h-full">
-                {rowItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setDialogOpen(true);
-                    }}
-                  >
-                    <div className="flex flex-row justify-between">
-                      <div className="mb-2">
-                        <Badge variant="secondary">
-                          {item.category || "Other"}
-                        </Badge>
-                      </div>
-                      <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
-                    </div>
-                    <div className="flex-1 mb-2">
-                      {renderClipContent(
-                        item.clip,
-                        true,
-                        searchQuery,
-                        item.category
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-auto">
-                      {formatDateTime(item.created_at)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
