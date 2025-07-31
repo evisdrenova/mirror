@@ -57,7 +57,7 @@ export default function App() {
     <div className="h-screen flex flex-col">
       <div className="mx-20 flex-1 flex flex-col">
         <div className="my-6 flex-shrink-0 pl-2 ">
-          <ViewNoneIcon className="w-6 h-6" />
+          <img src="/mirr-big.svg" width={20} height="20" />
         </div>
         <div className="flex-1 min-h-0">
           {isLoadingItems ? (
