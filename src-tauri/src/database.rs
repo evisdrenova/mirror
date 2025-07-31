@@ -57,6 +57,7 @@ pub fn init_database(app_handle: AppHandle) -> AppResult<std::path::PathBuf> {
         clip TEXT,
         category TEXT,
         summary TEXT,
+        tags TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );"#;
 

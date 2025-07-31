@@ -14,6 +14,7 @@ export interface ClipItem {
   created_at: string;
   category?: string;
   summary?: string;
+  tags?: string[];
 }
 
 export default function App() {
@@ -66,13 +67,6 @@ export default function App() {
             <GridVirtualizer items={items} getItems={getItems} />
           )}
         </div>
-        {items.length === 0 && !isLoadingItems && (
-          <div className="text-center py-8 text-gray-500">
-            <p>
-              No clips yet. Copy something and press Cmd+Shift+S to get started!
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

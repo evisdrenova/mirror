@@ -6,6 +6,14 @@ import { ArrowTopRightIcon } from "@radix-ui/react-icons";
 
 import { Badge } from "./components/ui/badge";
 import { renderClipContent } from "./GridVirtualizer";
+import {
+  Calendar,
+  CalendarDaysIcon,
+  Folder,
+  Tag,
+  TagIcon,
+  Tags,
+} from "lucide-react";
 
 interface ClipCardProps {
   containerHeight: number;
@@ -83,10 +91,25 @@ export default function ClipCard(props: ClipCardProps) {
                     }}
                   >
                     <div className="flex flex-row justify-between">
-                      <div className="mb-2">
-                        <Badge variant="secondary">
-                          {item.category || "Other"}
-                        </Badge>
+                      <div className="mb-2 flex flex-col gap-2">
+                        <div className="flex flex-row items-center gap-1 text-xs">
+                          <Folder className="w-3 h-3 text-gray-500" />
+                          <Badge className="bg-gray-100 text-[10px] text-gray-800 border border-gray-300">
+                            {item.category || "Other"}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-row items-center gap-1">
+                          <Tags className="w-3 h-3 text-gray-500" />
+                          {item.tags &&
+                            item.tags.map((t) => (
+                              <Badge
+                                className="bg-blue-100 text-blue-800 text-[10px] rounded-full py-0"
+                                key={t}
+                              >
+                                {t}
+                              </Badge>
+                            ))}
+                        </div>
                       </div>
                       <ArrowTopRightIcon className="h-3 w-3 text-blue-600 self-start" />
                     </div>
@@ -98,7 +121,8 @@ export default function ClipCard(props: ClipCardProps) {
                         item.category
                       )}
                     </div>
-                    <div className="text-xs text-gray-500 mt-auto">
+                    <div className="text-xs text-gray-400 mt-auto flex flex-row items-center gap-1">
+                      <Calendar className="w-3 h-3" />
                       {formatDateTime(item.created_at)}
                     </div>
                   </div>

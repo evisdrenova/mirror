@@ -2,17 +2,18 @@ use crate::shortcut::{save_clip, Clip};
 use crate::AppState;
 use base64::{engine::general_purpose, Engine};
 use rusqlite::{params, Connection};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use tauri::{Emitter, Manager, State};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ClipItem {
-    id: i64,
-    clip: Clip,
-    created_at: String,
-    category: Option<String>,
-    summary: Option<String>,
+    pub id: String,
+    pub clip: Clip,
+    pub category: Option<String>,
+    pub summary: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub created_at: String,
 }
 
 #[tauri::command]
@@ -23,13 +24,13 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
     let mut stmt = conn
         .prepare(
             r#"
-
         SELECT
           id,
           clip,
           created_at,
           category,
-          summary
+          summary,
+          tags
         FROM clips
         ORDER BY created_at DESC
         "#,
@@ -38,11 +39,18 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
 
     let clip_iter = stmt
         .query_map([], |row| {
-            let id = row.get(0)?;
+            let id: i64 = row.get(0)?;
             let clip_json: String = row.get(1)?;
             let created_at: String = row.get(2)?;
             let category: Option<String> = row.get(3).ok();
             let summary: Option<String> = row.get(4).ok();
+            let tags_json: Option<String> = row.get(5).ok();
+
+            let tags: Option<Vec<String>> = if let Some(tags_str) = tags_json {
+                serde_json::from_str(&tags_str).unwrap_or_default()
+            } else {
+                None
+            };
 
             let clip_value: serde_json::Value = serde_json::from_str(&clip_json).map_err(|_| {
                 rusqlite::Error::InvalidColumnType(
@@ -80,11 +88,12 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
             };
 
             Ok(ClipItem {
-                id,
+                id: id.to_string(),
                 clip,
                 created_at,
                 category,
                 summary,
+                tags,
             })
         })
         .map_err(|e| format!("Failed to execute query: {e}"))?;
@@ -104,13 +113,14 @@ pub async fn submit_clip(
     user_category: String,
     summary: String,
     clip_json: String,
+    tags: Vec<String>,
 ) -> Result<(), String> {
     let db_path = &state.db_path;
 
     let clip: Clip = serde_json::from_str(&clip_json)
         .map_err(|e| format!("Failed to deserialize clip: {}", e))?;
 
-    save_clip(&app_handle, db_path, &clip, &user_category, &summary)
+    save_clip(&app_handle, db_path, &clip, &user_category, &summary, &tags)
         .await
         .map_err(|e| format!("Failed to save clip: {}", e))?;
 

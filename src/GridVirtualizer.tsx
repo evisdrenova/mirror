@@ -78,20 +78,40 @@ export default function GridVirtualizer({
     // First apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
+
       filtered = filtered.filter((item) => {
-        // Search in text content
-        if (item.clip.Text?.plain) {
-          return item.clip.Text.plain.toLowerCase().includes(query);
-        }
-        // Search in summary if available
-        if (item.summary) {
-          return item.summary.toLowerCase().includes(query);
-        }
-        // Search in category
-        if (item.category) {
-          return item.category.toLowerCase().includes(query);
-        }
-        return false;
+        // Collect all searchable text
+        const searchableFields = [
+          item.clip.Text?.plain || "",
+          item.summary || "",
+          item.category || "",
+          // Add tags to searchable fields
+          ...(item.tags || []), // Spread the tags array, defaulting to empty array if undefined
+        ];
+
+        // Join all fields and normalize the text for better searching
+        const searchableText = searchableFields
+          .join(" ")
+          .toLowerCase()
+          // Normalize hyphens and special characters
+          .replace(/[-_]/g, " ") // Replace hyphens and underscores with spaces
+          .replace(/\s+/g, " ") // Replace multiple spaces with single space
+          .trim();
+
+        // Also normalize the search query the same way
+        const normalizedQuery = query
+          .replace(/[-_]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        // Check both original and normalized versions
+        const originalText = searchableFields.join(" ").toLowerCase();
+
+        return (
+          originalText.includes(query) ||
+          searchableText.includes(normalizedQuery) ||
+          searchableText.includes(query)
+        );
       });
     }
 
@@ -128,7 +148,9 @@ export default function GridVirtualizer({
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <p>No clips to display</p>
+        <p>
+          No clips yet. Copy something and press Cmd+Shift+S to get started!
+        </p>
       </div>
     );
   }
@@ -169,30 +191,23 @@ export default function GridVirtualizer({
         <div className="text-center py-8 text-gray-500">
           {searchQuery || selectedCategories.length > 0 ? (
             <div>
-              <p>No clips match your search criteria</p>
+              <p className="text-xs">No clips match your search criteria</p>
               {(searchQuery || selectedCategories.length > 0) && (
                 <div className="mt-2 space-x-2">
                   {searchQuery && (
-                    <Button
-                      onClick={clearSearch}
-                      className="text-blue-600 hover:text-blue-800 text-sm underline"
-                    >
-                      Clear search
-                    </Button>
+                    <Button onClick={clearSearch}>Clear search</Button>
                   )}
                   {selectedCategories.length > 0 && (
-                    <Button
-                      onClick={clearAllCategories}
-                      className="text-blue-600 hover:text-blue-800 text-sm underline"
-                    >
-                      Clear filters
-                    </Button>
+                    <Button onClick={clearAllCategories}>Clear filters</Button>
                   )}
                 </div>
               )}
             </div>
           ) : (
-            <p>No clips to display</p>
+            <p>
+              {" "}
+              No clips yet. Copy something and press Cmd+Shift+S to get started!
+            </p>
           )}
         </div>
       ) : (

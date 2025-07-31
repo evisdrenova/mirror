@@ -75,15 +75,16 @@ pub fn handle_capture(app: &AppHandle) {
         let app_handle = app.clone();
         let clip_clone = clip.clone();
         tauri::async_runtime::spawn(async move {
-            let category = match llm::get_llm_category(&clip_clone).await {
-                Ok(suggested_category) => suggested_category,
+            // Get category and tags from LLM
+            let (category, tags) = match llm::get_llm_category(&clip_clone).await {
+                Ok(category_response) => (category_response.category, category_response.tags),
                 Err(e) => {
                     eprintln!("LLM categorization failed: {}", e);
-                    "Other".to_string()
+                    ("other".to_string(), vec!["uncategorized".to_string()])
                 }
             };
 
-            let mut url_summary: String = String::new();
+            let mut summary: String = String::new();
 
             match &clip_clone {
                 Clip::Text { plain } => {
@@ -91,10 +92,10 @@ pub fn handle_capture(app: &AppHandle) {
                         println!("this is a url");
 
                         match llm::get_clip_summary(&clip_clone).await {
-                            Ok(suggested_summary) => url_summary = suggested_summary,
+                            Ok(suggested_summary) => summary = suggested_summary,
                             Err(e) => {
                                 eprintln!("LLM summarization failed: {}", e);
-                                url_summary = "No summary available".to_string();
+                                summary = "No summary available".to_string();
                             }
                         };
                     }
@@ -102,18 +103,27 @@ pub fn handle_capture(app: &AppHandle) {
                 _ => {}
             }
 
-            // Now actually use the summary somewhere
-            if !url_summary.is_empty() {
-                println!("URL Summary: {}", url_summary);
-                // Or save it to database, return it, etc.
+            // Log the results
+            if !summary.is_empty() {
+                println!("Summary: {}", summary);
             }
+            println!("Category: {}", category);
+            println!("Tags: {:?}", tags);
 
-            if let Err(e) =
-                save_clip(&app_handle, &db_path, &clip_clone, &category, &url_summary).await
+            // Save clip with category, tags, and summary
+            if let Err(e) = save_clip(
+                &app_handle,
+                &db_path,
+                &clip_clone,
+                &category,
+                &summary,
+                &tags,
+            )
+            .await
             {
                 eprintln!("Failed to save clip: {}", e);
             } else {
-                println!("Clip saved to category: {}", category);
+                println!("Clip saved to category: {} with tags: {:?}", category, tags);
             }
         });
     } else {
@@ -173,6 +183,56 @@ fn read_clipboard_once() -> Option<Clip> {
     }
 
     None
+}
+
+pub async fn save_clip(
+    app_handle: &AppHandle,
+    db_path: &PathBuf,
+    clip: &Clip,
+    category: &str,
+    summary: &str,
+    tags: &[String], // New parameter for tags
+) -> Result<(), Box<dyn std::error::Error>> {
+    let json_data = match clip {
+        Clip::Text { plain } => {
+            serde_json::json!({
+                "type": "text",
+                "content": plain,
+                "category": category,
+                "summary": summary,
+                "tags": tags
+            })
+        }
+        Clip::Image {
+            data,
+            width,
+            height,
+        } => {
+            let b64 = general_purpose::STANDARD.encode(data);
+            serde_json::json!({
+                "type": "image",
+                "content": b64,
+                "width": width,
+                "height": height,
+                "category": category,
+                "summary": summary
+            })
+        }
+    };
+
+    // Convert tags to JSON string
+    let tags_json = serde_json::to_string(tags)?;
+
+    let conn = Connection::open(db_path)?;
+
+    conn.execute(
+        "INSERT INTO clips(clip, category, summary, tags) VALUES (?,?,?,?)",
+        params![json_data.to_string(), category, summary, tags_json],
+    )?;
+
+    app_handle.emit("clip-saved", {}).unwrap();
+
+    Ok(())
 }
 
 // use std::sync::atomic::{AtomicBool, Ordering};
@@ -330,51 +390,6 @@ fn read_clipboard_once() -> Option<Clip> {
 //         });
 //     }
 // }
-
-pub async fn save_clip(
-    app_handle: &AppHandle,
-    db_path: &PathBuf,
-    clip: &Clip,
-    category: &str,
-    summary: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let json_data = match clip {
-        Clip::Text { plain } => {
-            serde_json::json!({
-                "type": "text",
-                "content": plain,
-                "category": category,
-                "summary": summary
-            })
-        }
-        Clip::Image {
-            data,
-            width,
-            height,
-        } => {
-            let b64 = general_purpose::STANDARD.encode(data);
-            serde_json::json!({
-                "type": "image",
-                "content": b64,
-                "width": width,
-                "height": height,
-                "category": category,
-                "summary": summary
-            })
-        }
-    };
-
-    let conn = Connection::open(db_path)?;
-
-    conn.execute(
-        "INSERT INTO clips(clip, category, summary) VALUES (?,?,?)",
-        params![json_data.to_string(), category, summary],
-    )?;
-
-    app_handle.emit("clip-saved", {}).unwrap();
-
-    Ok(())
-}
 
 // #[cfg(target_os = "macos")]
 // pub fn get_cursor_position() -> Option<(f64, f64)> {
