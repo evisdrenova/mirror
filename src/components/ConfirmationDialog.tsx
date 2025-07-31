@@ -11,8 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { Button, ButtonProps, buttonVariants } from "./ui/button";
-import ButtonText from "./ui/button-text";
+import { Button, ButtonProps, ButtonVariants } from "./ui/Button";
+import ButtonText from "./ui/Button-text";
 import { cn } from "../lib/utils";
 
 export interface Props {
@@ -20,22 +20,22 @@ export interface Props {
   headerText?: string;
   description?: string;
   body?: JSX.Element;
-  buttonText?: string;
-  buttonVariant?: ButtonProps["variant"] | null | undefined;
-  buttonIcon?: ReactNode;
+  ButtonText?: string;
+  ButtonVariant?: ButtonProps["variant"] | null | undefined;
+  ButtonIcon?: ReactNode;
   containerClassName?: string;
   onConfirm(): void | Promise<void>;
 }
 
 export default function ConfirmationDialog(props: Props): ReactElement {
   const {
-    trigger = <Button type="button">Press to Confirm</Button>,
+    trigger = <Button type="Button">Press to Confirm</Button>,
     headerText = "Are you sure?",
     description = "This will confirm the action that you selected.",
     body,
-    buttonText = "Confirm",
-    buttonVariant,
-    buttonIcon,
+    ButtonText = "Confirm",
+    ButtonVariant,
+    ButtonIcon,
     containerClassName,
     onConfirm,
   } = props;
@@ -72,11 +72,11 @@ export default function ConfirmationDialog(props: Props): ReactElement {
               e.preventDefault();
               onClick();
             }}
-            className={cn(buttonVariants({ variant: buttonVariant }))}
+            className={cn(ButtonVariants({ variant: ButtonVariant }))}
           >
             <ButtonText
-              leftIcon={isTrying ? <Spinner /> : buttonIcon}
-              text={buttonText}
+              leftIcon={isTrying ? <Spinner /> : ButtonIcon}
+              text={ButtonText}
             />
           </AlertDialogAction>
         </AlertDialogFooter>

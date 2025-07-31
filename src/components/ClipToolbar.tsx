@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Button } from "./ui/button";
+import { Button } from "./ui/Button";
 import { Check, X } from "lucide-react";
 import Spinner from "./Spinner";
 import { CategoryInput } from "./CategoryCombobox";

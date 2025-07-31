@@ -13,10 +13,11 @@ import { errorToast, successToast } from "./components/ui/toast";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatDateTime, isUrl } from "./lib/utils";
 import { ArrowTopRightIcon } from "@radix-ui/react-icons";
-import { Button } from "./components/ui/button";
 import { Trash, Search, X } from "lucide-react";
 import CategoryFilter from "./CategoryFilters";
 import { ClipItem } from "./App";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 
 interface GridVirtualizerProps {
   items: ClipItem[];
@@ -148,24 +149,19 @@ export default function GridVirtualizer({
 
   return (
     <div className="w-full h-full flex flex-col" ref={containerRef}>
-      {/* Search Bar */}
-      <div className="mb-4 px-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
+      <div className="mb-4">
+        <div className="relative flex flex-row items center gap-2">
+          <Input
             type="text"
             placeholder="Search clips..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+            className="w-full  placeholder:text-xs"
           />
           {searchQuery && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <Button onClick={clearSearch} variant="ghost">
+              <X className="h-2 w-2" />
+            </Button>
           )}
         </div>
         {searchQuery && (
@@ -175,7 +171,6 @@ export default function GridVirtualizer({
           </div>
         )}
       </div>
-
       <CategoryFilter
         toggleCategory={toggleCategory}
         selectedCategories={selectedCategories}
@@ -192,20 +187,20 @@ export default function GridVirtualizer({
               {(searchQuery || selectedCategories.length > 0) && (
                 <div className="mt-2 space-x-2">
                   {searchQuery && (
-                    <button
+                    <Button
                       onClick={clearSearch}
                       className="text-blue-600 hover:text-blue-800 text-sm underline"
                     >
                       Clear search
-                    </button>
+                    </Button>
                   )}
                   {selectedCategories.length > 0 && (
-                    <button
+                    <Button
                       onClick={clearAllCategories}
                       className="text-blue-600 hover:text-blue-800 text-sm underline"
                     >
                       Clear filters
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -318,7 +313,7 @@ function ClipDialog(props: ClipDialogProps) {
   console.log("selected item", selectedItem?.clip);
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Clip Details</DialogTitle>
         </DialogHeader>
@@ -381,9 +376,7 @@ function ClipDialog(props: ClipDialogProps) {
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-              Close
-            </button>
+            <Button>Close</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

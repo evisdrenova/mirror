@@ -9,9 +9,9 @@ type Props = ConfirmationDialogProps;
 export default function DeleteConfirmationDialog(props: Props): ReactElement {
   return (
     <ConfirmationDialog
-      buttonText={"Delete"}
-      buttonIcon={<TrashIcon />}
-      buttonVariant="destructive"
+      ButtonText={"Delete"}
+      ButtonIcon={<TrashIcon />}
+      ButtonVariant="destructive"
       {...props}
     />
   );

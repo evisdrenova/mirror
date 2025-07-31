@@ -122,7 +122,7 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
     <div className={`relative ${className}`}>
       {!showInput ? (
         <div className={`${className}`}>
-          <button
+          <Button
             onClick={handleBadgeClick}
             disabled={!aiSuggestion}
             className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-gray-100  rounded-md transition-colors text-sm cursor-pointer"
@@ -133,7 +133,7 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
             ) : (
               <Spinner className="w-4 h-4" />
             )}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="relative">
@@ -166,13 +166,13 @@ export const CategoryInput: React.FC<CategoryInputProps> = ({
   //   if (shouldShowBadge) {
   //     return (
   //       <div className={`${className}`}>
-  //         <button
+  //         <Button
   //           onClick={handleBadgeClick}
   //           className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-700 text-gray-100  rounded-md transition-colors text-sm cursor-pointer"
   //         >
   //           <Sparkles size={14} className="text-gray-100" />
   //           {aiSuggestion ? <Spinner /> : <span>{aiSuggestion}</span>}
-  //         </button>
+  //         </Button>
   //       </div>
   //     );
   //   }

@@ -61,7 +61,7 @@ h1 {
 }
 
 input,
-button {
+Button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -74,20 +74,20 @@ button {
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
-button {
+Button {
   cursor: pointer;
 }
 
-button:hover {
+Button:hover {
   border-color: #396cd8;
 }
-button:active {
+Button:active {
   border-color: #396cd8;
   background-color: #e8e8e8;
 }
 
 input,
-button {
+Button {
   outline: none;
 }
 
@@ -106,11 +106,11 @@ button {
   }
 
   input,
-  button {
+  Button {
     color: #ffffff;
     background-color: #0f0f0f98;
   }
-  button:active {
+  Button:active {
     background-color: #0f0f0f69;
   }
 }
