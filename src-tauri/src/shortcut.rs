@@ -43,12 +43,9 @@ pub fn handle_shortcut(
     if shortcut == &sc {
         match event.state {
             ShortcutState::Pressed => {
-                println!("shortcut pressed!");
                 handle_capture(app_handle);
             }
-            ShortcutState::Released => {
-                println!("shortcut released!");
-            }
+            _ => {}
         }
     }
 }

@@ -127,15 +127,20 @@ export default function ClipCard(props: ClipCardProps) {
                           <Tags className="w-3 h-3 text-gray-500 flex-shrink-0" />
                           <div className="flex flex-wrap gap-1">
                             {item.tags &&
-                              item.tags.map((t) => (
+                              item.tags.slice(0, 2).map((t) => (
                                 <Badge
-                                  className="bg-blue-100 text-blue-800 text-[10px] rounded-full py-0 truncate max-w-[80px]"
+                                  className="bg-blue-100 text-blue-800 text-[10px] rounded-full py-0 truncate "
                                   key={t}
                                   title={t}
                                 >
                                   {t}
                                 </Badge>
                               ))}
+                            {item.tags && item.tags.length > 2 && (
+                              <Badge className="bg-gray-100 text-gray-600 text-[10px] rounded-full py-0">
+                                +{item.tags.length - 2}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
