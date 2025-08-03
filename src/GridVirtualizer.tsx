@@ -313,14 +313,19 @@ export const renderClipContent = (
     }
   }
 
+  console.log("clip,", clip);
+
   if (clip.Image) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500">
-        <div className="text-2xl mb-1">🖼️</div>
-        <span className="text-xs">
-          {clip.Image.width}x{clip.Image.height}
-        </span>
-      </div>
+      <img
+        src={`data:image/png;base64,${clip.Image.data}`}
+        alt="Clipboard image"
+        className="max-w-full max-h-full object-contain rounded"
+        style={{
+          maxHeight: truncate ? "60px" : "300px",
+          maxWidth: truncate ? "100px" : "100%",
+        }}
+      />
     );
   }
 

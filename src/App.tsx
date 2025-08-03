@@ -4,20 +4,18 @@ import { listen } from "@tauri-apps/api/event";
 import "./globals.css";
 import { errorToast } from "./components/ui/toast";
 import GridVirtualizer from "./GridVirtualizer";
-import { ViewNoneIcon } from "@radix-ui/react-icons";
 
 export interface ClipItem {
   id: string;
   clip: {
     Text?: { plain: string };
-    Image?: { data: number[]; width: number; height: number };
+    Image?: { data: string; width: number; height: number };
   };
   created_at: string;
   category?: string;
   summary?: string;
   tags?: string[];
 }
-
 export default function App() {
   const [items, setItems] = useState<ClipItem[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState<boolean>();

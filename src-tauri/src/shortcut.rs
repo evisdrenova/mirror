@@ -6,8 +6,10 @@ use enigo::{
     Enigo, Key, Keyboard, Settings,
 };
 use global_hotkey::{hotkey, GlobalHotKeyEvent};
+use image::{ImageBuffer, ImageFormat, Rgba};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
 use std::{path::PathBuf, thread, time::Duration};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
@@ -19,7 +21,7 @@ pub enum Clip {
         plain: String,
     },
     Image {
-        data: Vec<u8>,
+        data: String,
         width: usize,
         height: usize,
     },
@@ -97,7 +99,13 @@ pub fn handle_capture(app: &AppHandle) {
                         };
                     }
                 }
-                _ => {}
+                Clip::Image {
+                    data,
+                    width,
+                    height,
+                } => {
+                    println!("this is a clip");
+                }
             }
 
             // Log the results
@@ -172,14 +180,41 @@ fn read_clipboard_once() -> Option<Clip> {
         height,
     }) = cb.get_image()
     {
+        // clipboard returns raw rgba pixels which we need to convert into a png to then base64 encode it and save it.
+        let png_data = match raw_pixels_to_png(&bytes, width, height) {
+            Ok(data) => data,
+            Err(e) => {
+                eprintln!("Failed to convert pixels to PNG: {}", e);
+                return None;
+            }
+        };
+
+        let base64_data = general_purpose::STANDARD.encode(&png_data);
+
         return Some(Clip::Image {
-            data: bytes.into_owned(),
+            data: base64_data,
             width,
             height,
         });
     }
 
     None
+}
+
+fn raw_pixels_to_png(
+    pixels: &[u8],
+    width: usize,
+    height: usize,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let img_buffer = ImageBuffer::<Rgba<u8>, _>::from_raw(width as u32, height as u32, pixels)
+        .ok_or("Failed to create image buffer")?;
+
+    let mut png_data = Vec::new();
+    let mut cursor = Cursor::new(&mut png_data);
+
+    img_buffer.write_to(&mut cursor, ImageFormat::Png)?;
+
+    Ok(png_data)
 }
 
 pub async fn save_clip(
@@ -205,10 +240,10 @@ pub async fn save_clip(
             width,
             height,
         } => {
-            let b64 = general_purpose::STANDARD.encode(data);
+            // let b64 = general_purpose::STANDARD.encode(data);
             serde_json::json!({
                 "type": "image",
-                "content": b64,
+                "content": data,
                 "width": width,
                 "height": height,
                 "category": category,

@@ -66,18 +66,12 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
                 },
                 Some("image") => {
                     let base64_data = clip_value["content"].as_str().unwrap_or("");
-                    let data = general_purpose::STANDARD.decode(base64_data).map_err(|_| {
-                        rusqlite::Error::InvalidColumnType(
-                            0,
-                            "Invalid base64".to_string(),
-                            rusqlite::types::Type::Text,
-                        )
-                    })?;
+                    // DON'T decode - just pass the base64 string through
                     let width = clip_value["width"].as_u64().unwrap_or(0) as usize;
                     let height = clip_value["height"].as_u64().unwrap_or(0) as usize;
 
                     Clip::Image {
-                        data,
+                        data: base64_data.to_string(), // Keep as base64 string
                         width,
                         height,
                     }
