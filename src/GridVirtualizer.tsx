@@ -313,8 +313,6 @@ export const renderClipContent = (
     }
   }
 
-  console.log("clip,", clip);
-
   if (clip.Image) {
     return (
       <img

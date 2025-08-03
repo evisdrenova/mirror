@@ -1,6 +1,5 @@
 use crate::shortcut::{save_clip, Clip};
 use crate::AppState;
-use base64::{engine::general_purpose, Engine};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 
