@@ -102,6 +102,7 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
             width,
             height,
         } => {
+            println!("this is an image clip in the llm");
             let user_prompt = format!(
                 "Categorize this image content. Image dimensions: {}x{}. Analyze what you see in the image and provide appropriate category and tags.",
                 width, height
@@ -161,7 +162,6 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
                 );
                 return Ok(category_response);
             }
-
             // Fallback: try to extract category if JSON parsing fails
             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(trimmed_content) {
                 if let (Some(category), Some(tags)) = (
@@ -172,7 +172,6 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
                         .iter()
                         .filter_map(|tag| tag.as_str().map(|s| s.to_string()))
                         .collect();
-
                     return Ok(CategoryResponse {
                         category: category.to_string(),
                         tags: tag_strings,
@@ -194,138 +193,6 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
         }),
     }
 }
-
-// pub async fn get_llm_category(clip: &Clip) -> Result<CategoryResponse, Box<dyn std::error::Error>> {
-//     let client = Client::new();
-
-//     let content = match clip {
-//         Clip::Text { plain } => {
-//             if plain.len() > 2000 {
-//                 format!("{}...", &plain[..2000])
-//             } else {
-//                 plain.clone()
-//             }
-//         }
-//         Clip::Image { .. } => {
-//             return Ok(CategoryResponse {
-//                 category: "image".to_string(),
-//                 tags: vec!["image".to_string()],
-//             });
-//         }
-//     };
-
-//     let system_prompt = r#"You are a clipboard content categorizer. Your job is to categorize text content into a primary category and suggest relevant tags.
-
-// IMPORTANT: Respond with ONLY a JSON object in this exact format:
-// {
-//   "category": "category_name",
-//   "tags": ["tag1", "tag2", "tag3"]
-// }
-
-// Use these primary categories (choose the best fit):
-// - code_snippet: Programming code, scripts, configuration files, JSON, XML, HTML, CSS, SQL queries
-// - technical_advice: Technical explanations, troubleshooting steps, how-to guides, technical discussions
-// - documentation: API docs, README files, technical specifications, user manuals
-// - url: Web links, file paths, network addresses
-// - credentials: Passwords, API keys, tokens, certificates (be careful with sensitive data)
-// - data: CSV data, logs, structured data, database records
-// - communication: Emails, messages, social media posts, chat conversations
-// - notes: Personal notes, reminders, todo items, quick thoughts
-// - reference: Phone numbers, addresses, contact info, reference materials
-// - creative: Writing, stories, poems, creative content
-// - business: Meeting notes, project plans, business documents, proposals
-// - academic: Research, papers, citations, study materials
-// - error_log: Error messages, stack traces, debug output
-// - command: Terminal commands, CLI instructions, scripts to run
-// - other: Content that doesn't fit the above categories
-
-// For tags, suggest 2-4 specific, relevant tags that describe the content in more detail. Tags should be:
-// - Lowercase
-// - Single words or hyphenated (e.g., "react", "javascript", "error-handling")
-// - Specific to the technology, topic, or context
-
-// Examples:
-// Input: "const handleClick = () => { console.log('clicked'); }"
-// Output: {"category": "code_snippet", "tags": ["javascript", "function", "event-handler"]}
-
-// Input: "To fix this issue, first check your network connection..."
-// Output: {"category": "technical_advice", "tags": ["troubleshooting", "network", "debugging"]}
-
-// Input: "https://github.com/user/repo"
-// Output: {"category": "url", "tags": ["github", "repository", "git"]}
-
-// Input: "Meeting with client at 2pm tomorrow"
-// Output: {"category": "notes", "tags": ["meeting", "client", "reminder"]}
-
-// Input: "npm install react"
-// Output: {"category": "command", "tags": ["npm", "react", "install"]}
-
-// Input: "TypeError: Cannot read property 'map' of undefined"
-// Output: {"category": "error_log", "tags": ["javascript", "type-error", "debugging"]}"#;
-
-//     let user_prompt = format!("Categorize this content:\n\n{}", content);
-
-//     let request = CreateResponseArgs::default()
-//         .max_output_tokens(100u32)
-//         .model("gpt-4.1")
-//         .input(Input::Items(vec![
-//             InputItem::Message(
-//                 InputMessageArgs::default()
-//                     .role(Role::System)
-//                     .content(system_prompt)
-//                     .build()?,
-//             ),
-//             InputItem::Message(
-//                 InputMessageArgs::default()
-//                     .role(Role::User)
-//                     .content(user_prompt)
-//                     .build()?,
-//             ),
-//         ]))
-//         .build()?;
-
-//     let response = client.responses().create(request).await?;
-
-//     // Extract the JSON response and parse it
-//     for output in response.output {
-//         if let Some(content) = extract_content_from_output(&output) {
-//             let trimmed_content = content.trim();
-
-//             // Try to parse as JSON
-//             if let Ok(category_response) = serde_json::from_str::<CategoryResponse>(trimmed_content)
-//             {
-//                 println!(
-//                     "LLM categorized as: {} with tags: {:?}",
-//                     category_response.category, category_response.tags
-//                 );
-//                 return Ok(category_response);
-//             }
-
-//             // Fallback: try to extract category if JSON parsing fails
-//             if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(trimmed_content) {
-//                 if let (Some(category), Some(tags)) = (
-//                     json_value.get("category").and_then(|v| v.as_str()),
-//                     json_value.get("tags").and_then(|v| v.as_array()),
-//                 ) {
-//                     let tag_strings: Vec<String> = tags
-//                         .iter()
-//                         .filter_map(|tag| tag.as_str().map(|s| s.to_string()))
-//                         .collect();
-
-//                     return Ok(CategoryResponse {
-//                         category: category.to_string(),
-//                         tags: tag_strings,
-//                     });
-//                 }
-//             }
-//         }
-//     }
-
-//     Ok(CategoryResponse {
-//         category: "other".to_string(),
-//         tags: vec!["uncategorized".to_string()],
-//     })
-// }
 
 pub async fn get_clip_summary(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
