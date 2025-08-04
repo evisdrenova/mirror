@@ -102,7 +102,6 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
             width,
             height,
         } => {
-            println!("this is an image clip in the llm");
             let user_prompt = format!(
                 "Categorize this image content. Image dimensions: {}x{}. Analyze what you see in the image and provide appropriate category and tags.",
                 width, height

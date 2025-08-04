@@ -88,8 +88,6 @@ pub fn handle_capture(app: &AppHandle) {
             match &clip_clone {
                 Clip::Text { plain } => {
                     if is_url(plain) {
-                        println!("this is a url");
-
                         match llm::get_clip_summary(&clip_clone).await {
                             Ok(suggested_summary) => summary = suggested_summary,
                             Err(e) => {
@@ -99,21 +97,8 @@ pub fn handle_capture(app: &AppHandle) {
                         };
                     }
                 }
-                Clip::Image {
-                    data,
-                    width,
-                    height,
-                } => {
-                    println!("this is a clip");
-                }
+                _ => {}
             }
-
-            // Log the results
-            if !summary.is_empty() {
-                println!("Summary: {}", summary);
-            }
-            println!("Category: {}", category);
-            println!("Tags: {:?}", tags);
 
             // Save clip with category, tags, and summary
             if let Err(e) = save_clip(
