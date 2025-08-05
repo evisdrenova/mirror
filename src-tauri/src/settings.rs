@@ -177,7 +177,9 @@ pub async fn get_setting(
     key: String,
     settings_manager: State<'_, SettingsManagerState>,
 ) -> Result<Option<String>, String> {
-    Ok(settings_manager.0.get_setting(&key))
+    let key = settings_manager.0.get_setting(&key);
+    println!("the value {:?}", key);
+    Ok(key)
 }
 
 #[tauri::command]

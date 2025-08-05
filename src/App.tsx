@@ -50,23 +50,18 @@ export default function App() {
   const loadSettings = async () => {
     try {
       const shortcut = await invoke<string>("get_global_hotkey");
-      const apiKey = await invoke<{ get_setting: string } | null>(
-        "get_setting",
-        {
-          key: "llm_api_key",
-        }
-      );
-      console.log("key i n", llmApiKey);
+      const apiKey = await invoke<string | null>("get_setting", {
+        key: "llm_api_key",
+      });
+
       setGlobalShortcut(shortcut || "CommandOrControl+Shift+C");
-      setLlmApiKey(apiKey?.get_setting || "");
+      setLlmApiKey(apiKey || "");
       setHasChanges(false);
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
   };
 
-  console.log("has", hasLlmApiKey);
-  console.log("key", llmApiKey);
   useEffect(() => {
     setHasLlmApiKey(llmApiKey.trim() !== "");
   }, [llmApiKey]);
