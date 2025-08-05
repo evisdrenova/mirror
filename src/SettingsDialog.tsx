@@ -82,12 +82,6 @@ export default function SettingsDialog(props: SettingsDialogProps) {
     setHasChanges(true);
   };
 
-  const resetToDefaults = () => {
-    setGlobalShortcut("CommandOrControl+Shift+C");
-    setLlmApiKey("");
-    setHasChanges(true);
-  };
-
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-2xl">
@@ -99,23 +93,18 @@ export default function SettingsDialog(props: SettingsDialogProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Global Shortcut Section */}
           <div>
-            <div className="pb-3">
-              <div className="flex items-center gap-2 text-base">
-                <Keyboard className="w-4 h-4" />
-                Global Shortcut
-              </div>
-            </div>
             <div className="space-y-3">
               <div>
-                <div className="text-sm font-medium">Hotkey Combination</div>
+                <div className="text-xs font-medium">
+                  Global Hotkey Combination
+                </div>
                 <Input
                   id="global-shortcut"
                   value={globalShortcut}
                   onChange={(e) => handleShortcutChange(e.target.value)}
                   placeholder="CommandOrControl+Shift+C"
-                  className="mt-1"
+                  className="mt-1 placeholder:text-xs"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Use modifiers like CommandOrControl, Shift, Alt, and keys like
@@ -124,18 +113,10 @@ export default function SettingsDialog(props: SettingsDialogProps) {
               </div>
             </div>
           </div>
-
-          {/* LLM API Key Section */}
           <div>
-            <div className="pb-3">
-              <div className="flex items-center gap-2 text-base">
-                <Key className="w-4 h-4" />
-                LLM API Configuration
-              </div>
-            </div>
             <div className="space-y-3">
               <div>
-                <div className="text-sm font-medium">OpenAI API Key</div>
+                <div className="text-xs font-medium">OpenAI API Key</div>
                 <div className="relative mt-1">
                   <Input
                     id="llm-api-key"
@@ -143,7 +124,7 @@ export default function SettingsDialog(props: SettingsDialogProps) {
                     value={llmApiKey}
                     onChange={(e) => handleApiKeyChange(e.target.value)}
                     placeholder="sk-..."
-                    className="pr-10"
+                    className="pr-10  placeholder:text-xs"
                   />
                   <button
                     type="button"
@@ -164,54 +145,20 @@ export default function SettingsDialog(props: SettingsDialogProps) {
               </div>
             </div>
           </div>
-
-          {/* Status Indicators */}
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    globalShortcut ? "bg-green-500" : "bg-red-500"
-                  }`}
-                />
-                <span className="text-xs text-gray-600">
-                  Shortcut: {globalShortcut ? "Configured" : "Not set"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    llmApiKey ? "bg-green-500" : "bg-red-500"
-                  }`}
-                />
-                <span className="text-xs text-gray-600">
-                  API Key: {llmApiKey ? "Configured" : "Not set"}
-                </span>
-              </div>
-            </div>
-
-            {hasChanges && (
-              <span className="text-xs text-orange-600 font-medium">
-                Unsaved changes
-              </span>
-            )}
-          </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between">
-          <Button variant="outline" onClick={resetToDefaults} size="sm">
-            Reset to Defaults
-          </Button>
-
-          <div className="flex items-center gap-2">
+        <DialogFooter className="flex items-center">
+          <div className="flex items-center gap-2 justify-between w-full ">
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" className="text-xs">
+                Cancel
+              </Button>
             </DialogClose>
 
             <Button
               onClick={saveSettings}
               disabled={isSaving || !hasChanges}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs"
             >
               {isSaving ? (
                 <>
