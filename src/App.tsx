@@ -7,6 +7,7 @@ import GridVirtualizer from "./GridVirtualizer";
 import { SettingsIcon } from "lucide-react";
 import { Button } from "./components/ui/button";
 import SettingsDialog from "./SettingsDialog";
+import { Badge } from "./components/ui/badge";
 
 export interface ClipItem {
   id: string;
@@ -19,16 +20,20 @@ export interface ClipItem {
   summary?: string;
   tags?: string[];
 }
+
 export default function App() {
   const [items, setItems] = useState<ClipItem[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState<boolean>();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [hasLlmApiKey, setHasLlmApiKey] = useState(false);
+  const [globalShortcut, setGlobalShortcut] = useState("");
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
 
   const getItems = async () => {
     setIsLoadingItems(true);
     try {
       const items = await invoke<ClipItem[]>("get_items");
-      console.log("items", items);
       setItems(items);
     } catch (error) {
       console.log("error", error);
@@ -37,6 +42,34 @@ export default function App() {
       setIsLoadingItems(false);
     }
   };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const shortcut = await invoke<string>("get_global_hotkey");
+      const apiKey = await invoke<{ get_setting: string } | null>(
+        "get_setting",
+        {
+          key: "llm_api_key",
+        }
+      );
+      console.log("key i n", llmApiKey);
+      setGlobalShortcut(shortcut || "CommandOrControl+Shift+C");
+      setLlmApiKey(apiKey?.get_setting || "");
+      setHasChanges(false);
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+    }
+  };
+
+  console.log("has", hasLlmApiKey);
+  console.log("key", llmApiKey);
+  useEffect(() => {
+    setHasLlmApiKey(llmApiKey.trim() !== "");
+  }, [llmApiKey]);
 
   useEffect(() => {
     getItems();
@@ -55,7 +88,6 @@ export default function App() {
     };
   }, []);
 
-  console.log("the dialog", dialogOpen);
   return (
     <div className="h-screen flex flex-col">
       <div className="mx-20 flex-1 flex flex-col">
@@ -63,7 +95,10 @@ export default function App() {
           <div className="my-6 flex-shrink-0 pl-2 ">
             <img src="/mirr-big.svg" width={20} height="20" />
           </div>
-          <div>
+          <div className="flex flex-row items-center gap-2">
+            {!hasLlmApiKey && (
+              <Badge variant="destructive">No LLM API Key</Badge>
+            )}
             <Button variant="ghost" onClick={() => setDialogOpen(true)}>
               <SettingsIcon />
             </Button>
@@ -79,7 +114,17 @@ export default function App() {
           )}
         </div>
       </div>
-      <SettingsDialog dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} />
+
+      <SettingsDialog
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+        globalShortcut={globalShortcut}
+        setGlobalShortcut={setGlobalShortcut}
+        llmApiKey={llmApiKey}
+        setLlmApiKey={setLlmApiKey}
+        hasChanges={hasChanges}
+        setHasChanges={setHasChanges}
+      />
     </div>
   );
 }

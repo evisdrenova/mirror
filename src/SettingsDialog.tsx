@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Dialog,
@@ -9,55 +9,43 @@ import {
   DialogClose,
 } from "./components/ui/dialog";
 import "./globals.css";
-import { Settings, Keyboard, Key, Save, Eye, EyeOff } from "lucide-react";
+import { Settings, Save, Eye, EyeOff } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import Spinner from "./components/Spinner";
+import { errorToast } from "./components/ui/toast";
 
 interface SettingsDialogProps {
   dialogOpen: boolean;
   setDialogOpen: (val: boolean) => void;
+  globalShortcut: string;
+  setGlobalShortcut: (val: string) => void;
+  llmApiKey: string;
+  setLlmApiKey: (val: string) => void;
+  hasChanges: boolean;
+  setHasChanges: (val: boolean) => void;
 }
 
 export default function SettingsDialog(props: SettingsDialogProps) {
-  const { dialogOpen, setDialogOpen } = props;
+  const {
+    dialogOpen,
+    setDialogOpen,
+    globalShortcut,
+    setGlobalShortcut,
+    llmApiKey,
+    setLlmApiKey,
+    hasChanges,
+    setHasChanges,
+  } = props;
 
-  const [globalShortcut, setGlobalShortcut] = useState("");
-  const [llmApiKey, setLlmApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    if (dialogOpen) {
-      loadSettings();
-    }
-  }, [dialogOpen]);
-
-  const loadSettings = async () => {
-    try {
-      const shortcut = await invoke<string>("get_global_hotkey");
-      const apiKey = await invoke<{ get_setting: string } | null>(
-        "get_setting",
-        {
-          key: "llm_api_key",
-        }
-      );
-
-      setGlobalShortcut(shortcut || "CommandOrControl+Shift+C");
-      setLlmApiKey(apiKey?.get_setting || "");
-      setHasChanges(false);
-    } catch (error) {
-      console.error("Failed to load settings:", error);
-    }
-  };
 
   const saveSettings = async () => {
     setIsSaving(true);
     try {
-      // Save global shortcut
       await invoke("set_global_hotkey", { hotkey: globalShortcut });
 
-      // Save LLM API key
       await invoke("set_setting", {
         key: "llm_api_key",
         value: llmApiKey,
@@ -67,6 +55,7 @@ export default function SettingsDialog(props: SettingsDialogProps) {
       console.log("Settings saved successfully");
     } catch (error) {
       console.error("Failed to save settings:", error);
+      errorToast("Failed to save settings");
     } finally {
       setIsSaving(false);
     }
@@ -148,7 +137,7 @@ export default function SettingsDialog(props: SettingsDialogProps) {
         </div>
 
         <DialogFooter className="flex items-center">
-          <div className="flex items-center gap-2 justify-between w-full ">
+          <div className="flex items-center gap-2 justify-between w-full">
             <DialogClose asChild>
               <Button variant="outline" className="text-xs">
                 Cancel
@@ -162,7 +151,7 @@ export default function SettingsDialog(props: SettingsDialogProps) {
             >
               {isSaving ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  <Spinner />
                   Saving...
                 </>
               ) : (

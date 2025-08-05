@@ -28,18 +28,6 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-            let dotenv_loaded = dotenvy::dotenv().is_ok();
-            let has_openai_key = env::var("OPENAI_API_KEY")
-                .map(|v| !v.trim().is_empty())
-                .unwrap_or(false);
-
-            if !dotenv_loaded {
-                eprintln!(".env not found");
-            }
-            if !has_openai_key {
-                eprintln!("OPENAI_API_KEY missing.");
-            }
-
             let db_path = database::init_database(app.app_handle().clone())?;
             app.manage(AppState {
                 db_path: db_path.clone(),
@@ -57,6 +45,8 @@ pub fn run() {
             commands::delete_item,
             settings::get_setting,
             settings::set_setting,
+            settings::get_global_hotkey,
+            settings::set_global_hotkey
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

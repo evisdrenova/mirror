@@ -64,7 +64,7 @@ pub fn init_database(app_handle: AppHandle) -> AppResult<std::path::PathBuf> {
     let settings_table = r#"
         CREATE TABLE if not exists settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT,
+            key TEXT UNIQUE,
             value TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
