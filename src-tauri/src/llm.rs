@@ -2,10 +2,10 @@ use crate::shortcut::Clip;
 use async_openai::{
     types::{
         responses::{
-            Content, ContentType, CreateResponseArgs, Input, InputContent, InputImage,
-            InputImageArgs, InputItem, InputMessageArgs, InputText, OutputContent, Role,
+            Content, ContentType, CreateResponseArgs, Input, InputContent, InputImageArgs,
+            InputItem, InputMessageArgs, OutputContent, Role,
         },
-        ImageDetail, ImageUrlArgs,
+        ImageDetail,
     },
     Client,
 };

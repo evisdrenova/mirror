@@ -2,16 +2,18 @@
 
 ![sc](./image.png)
 
-**Mirror** is currently only supported on Mac with windows/linux support in progress. Mirror is an AI-assisted clipboard & snippet manager built with **Tauri (Rust back-end) + React 18/Tailwind (front-end)**.
-It quietly watches your clipboard, stores every text in a local SQLite database, and calls an LLM to **auto-categorise, summarise, and tag** each item. A lightning-fast virtualised grid lets you search, filter, and paste any past clip in a couple of keystrokes.
+**Mirror currently only supports Mac**
 
-| Feature                  | What it does                                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------------ |
-| 🧠 **Auto-AI** (opt-in)  | Sends the new clip to OpenAI (or your own LLM endpoint) for category, summary & tags.            |
-| 🔍 **Instant search**    | Fuzzy-search by plain text **or** tags; 10k+ clips stay smooth thanks to TanStack React Virtual. |
-| 🏷 **Auto-sorting**       | Rules engine (JSON) moves items into folders/categories as they arrive.                          |
-| ⌨️ **Global hotkeys**    | `Ctrl+Shift+V` saves the text;                                                                   |
-| 🌗 **Tauri desktop app** | Native tray icon, zero Electron weight, small memory footprint.                                  |
+**Mirror** is an AI-assisted knowledge management tool designed to save and automatically organize text, images, URLs and more.
+
+Mirror quietly watches your clipboard, stores every item in a local SQLite database, and calls an LLM to **auto-categorise, summarise, and tag** each item.
+
+| Feature                  | What it does                                                    |
+| ------------------------ | --------------------------------------------------------------- |
+| 🧠 **Auto-AI**           | Auto categorizes and tags saved items using an LLM              |
+| 🔍 **Instant search**    | Fuzzy-search by plain text **or** tags;                         |
+| ⌨️ **Global hotkeys**    | `Ctrl+Shift+S` saves the clip                                   |
+| 🌗 **Tauri desktop app** | Native tray icon, zero Electron weight, small memory footprint. |
 
 ## Quick start
 

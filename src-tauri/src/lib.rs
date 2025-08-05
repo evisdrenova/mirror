@@ -1,6 +1,7 @@
 mod commands;
 mod database;
 mod llm;
+mod settings;
 mod shortcut;
 
 use crate::shortcut::shortcut_hotkey;
@@ -43,6 +44,7 @@ pub fn run() {
             app.manage(AppState {
                 db_path: db_path.clone(),
             });
+            settings::init_settings(db_path, app.app_handle().clone())?;
 
             let shortcutwrapper = shortcut_hotkey()?;
             app.global_shortcut().register(shortcutwrapper)?;
@@ -53,6 +55,8 @@ pub fn run() {
             commands::get_items,
             commands::submit_clip,
             commands::delete_item,
+            settings::get_setting,
+            settings::set_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

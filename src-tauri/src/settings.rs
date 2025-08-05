@@ -1,0 +1,225 @@
+use rusqlite::{params, Connection};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
+use tauri::{AppHandle, Manager, State};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum SettingsError {
+    #[error("Database error: {0}")]
+    Database(#[from] rusqlite::Error),
+    #[error("Serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
+}
+
+type Result<T, E = SettingsError> = std::result::Result<T, E>;
+
+pub struct SettingsManager {
+    settings: Mutex<HashMap<String, String>>,
+    db_path: PathBuf,
+}
+
+impl SettingsManager {
+    pub fn new(db_path: PathBuf) -> Self {
+        Self {
+            settings: Mutex::new(HashMap::new()),
+            db_path,
+        }
+    }
+
+    fn get_connection(&self) -> Result<Connection> {
+        Connection::open(&self.db_path).map_err(SettingsError::Database)
+    }
+
+    pub fn initialize(&self) -> Result<()> {
+        let conn = self.get_connection()?;
+
+        let mut stmt = conn.prepare("SELECT key, value FROM settings")?;
+        let settings_iter = stmt.query_map([], |row| {
+            let key: String = row.get(0)?;
+            let value: String = row.get(1)?;
+            Ok((key, value))
+        })?;
+
+        let mut settings = self.settings.lock().unwrap();
+        settings.clear();
+
+        for setting_result in settings_iter {
+            match setting_result {
+                Ok((key, value)) => {
+                    settings.insert(key, value);
+                }
+                Err(e) => {
+                    eprintln!("Error loading setting: {}", e);
+                }
+            }
+        }
+        let defaults = vec![("global_hotkey", "CommandOrControl+Shift+S")];
+
+        for (key, default_value) in defaults {
+            if !settings.contains_key(key) {
+                conn.execute(
+                    "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                    params![key, default_value],
+                )?;
+
+                settings.insert(key.to_string(), default_value.to_string());
+                println!("Set default for {}: {}", key, default_value);
+            }
+        }
+        // release the lock
+        drop(settings);
+
+        Ok(())
+    }
+
+    pub fn get_setting(&self, key: &str) -> Option<String> {
+        let settings = self.settings.lock().unwrap();
+        settings.get(key).cloned()
+    }
+
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        let conn = self.get_connection()?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+            params![key, value],
+        )?;
+
+        let mut settings = self.settings.lock().unwrap();
+        settings.insert(key.to_string(), value.to_string());
+
+        Ok(())
+    }
+
+    pub fn remove_setting(&self, key: &str) -> Result<()> {
+        let conn = self.get_connection()?;
+
+        conn.execute("DELETE FROM settings WHERE key = ?", params![key])?;
+
+        let mut settings = self.settings.lock().unwrap();
+        settings.remove(key);
+
+        Ok(())
+    }
+
+    pub fn get_all_settings(&self) -> HashMap<String, String> {
+        let settings = self.settings.lock().unwrap();
+        settings.clone()
+    }
+
+    // Convenience methods for specific settings
+    pub fn get_global_hotkey(&self) -> String {
+        self.get_setting("global_hotkey")
+            .unwrap_or_else(|| "CommandOrControl+Shift+C".to_string())
+    }
+
+    pub fn set_global_hotkey(&self, hotkey: &str) -> Result<()> {
+        self.set_setting("global_hotkey", hotkey)
+    }
+
+    pub fn get_llm_api_key(&self) -> Option<String> {
+        self.get_setting("llm_api_key")
+    }
+
+    pub fn set_llm_api_key(&self, api_key: &str) -> Result<()> {
+        self.set_setting("llm_api_key", api_key)
+    }
+
+    pub fn has_llm_api_key(&self) -> bool {
+        self.get_llm_api_key()
+            .map(|key| !key.trim().is_empty())
+            .unwrap_or(false)
+    }
+
+    // Type-safe getters for different data types
+    pub fn get_setting_bool(&self, key: &str, default: bool) -> bool {
+        self.get_setting(key)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(default)
+    }
+
+    pub fn set_setting_bool(&self, key: &str, value: bool) -> Result<()> {
+        self.set_setting(key, &value.to_string())
+    }
+
+    pub fn get_setting_int(&self, key: &str, default: i64) -> i64 {
+        self.get_setting(key)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(default)
+    }
+
+    pub fn set_setting_int(&self, key: &str, value: i64) -> Result<()> {
+        self.set_setting(key, &value.to_string())
+    }
+}
+
+pub struct SettingsManagerState(pub Arc<SettingsManager>);
+
+pub fn init_settings(
+    db_path: PathBuf,
+    app_handle: AppHandle,
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let settings_manager = SettingsManager::new(db_path);
+    settings_manager.initialize()?;
+
+    app_handle.manage(SettingsManagerState(Arc::new(settings_manager)));
+
+    println!("Settings initialized");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_setting(
+    key: String,
+    settings_manager: State<'_, SettingsManagerState>,
+) -> Result<Option<String>, String> {
+    Ok(settings_manager.0.get_setting(&key))
+}
+
+#[tauri::command]
+pub async fn set_setting(
+    key: String,
+    value: String,
+    settings_manager: State<'_, SettingsManagerState>,
+) -> Result<(), String> {
+    settings_manager
+        .0
+        .set_setting(&key, &value)
+        .map_err(|e| format!("Failed to set setting: {}", e))
+}
+
+#[tauri::command]
+pub async fn get_all_settings(
+    settings_manager: State<'_, SettingsManagerState>,
+) -> Result<HashMap<String, String>, String> {
+    Ok(settings_manager.0.get_all_settings())
+}
+
+#[tauri::command]
+pub async fn has_llm_api_key(
+    settings_manager: State<'_, SettingsManagerState>,
+) -> Result<bool, String> {
+    Ok(settings_manager.0.has_llm_api_key())
+}
+
+#[tauri::command]
+pub async fn get_global_hotkey(
+    settings_manager: State<'_, SettingsManagerState>,
+) -> Result<String, String> {
+    Ok(settings_manager.0.get_global_hotkey())
+}
+
+#[tauri::command]
+pub async fn set_global_hotkey(
+    hotkey: String,
+    settings_manager: State<'_, SettingsManagerState>,
+) -> Result<(), String> {
+    settings_manager
+        .0
+        .set_global_hotkey(&hotkey)
+        .map_err(|e| format!("Failed to set global hotkey: {}", e))
+}

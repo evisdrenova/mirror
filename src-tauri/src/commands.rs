@@ -65,12 +65,11 @@ pub async fn get_items(state: State<'_, AppState>) -> Result<Vec<ClipItem>, Stri
                 },
                 Some("image") => {
                     let base64_data = clip_value["content"].as_str().unwrap_or("");
-                    // DON'T decode - just pass the base64 string through
                     let width = clip_value["width"].as_u64().unwrap_or(0) as usize;
                     let height = clip_value["height"].as_u64().unwrap_or(0) as usize;
 
                     Clip::Image {
-                        data: base64_data.to_string(), // Keep as base64 string
+                        data: base64_data.to_string(),
                         width,
                         height,
                     }

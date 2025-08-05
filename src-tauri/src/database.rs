@@ -52,16 +52,25 @@ pub fn init_database(app_handle: AppHandle) -> AppResult<std::path::PathBuf> {
     };
 
     let links_table = r#"
-    create table if not exists clips (
+        create table if not exists clips (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         clip TEXT,
         category TEXT,
         summary TEXT,
         tags TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);"#;
+        );"#;
 
-    let statements = vec![links_table];
+    let settings_table = r#"
+        CREATE TABLE if not exists settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT,
+            value TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );"#;
+
+    let statements = vec![links_table, settings_table];
 
     for (i, stmt) in statements.iter().enumerate() {
         if let Err(e) = conn.execute(stmt, []) {
