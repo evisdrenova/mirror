@@ -21,6 +21,10 @@ export interface ClipItem {
   tags?: string[];
 }
 
+interface Settings {
+  [key: string]: string | null;
+}
+
 export default function App() {
   const [items, setItems] = useState<ClipItem[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState<boolean>();
@@ -49,10 +53,9 @@ export default function App() {
 
   const loadSettings = async () => {
     try {
-      const shortcut = await invoke<string>("get_global_hotkey");
-      const apiKey = await invoke<string | null>("get_setting", {
-        key: "llm_api_key",
-      });
+      const settings = await invoke<Settings>("get_all_settings");
+      const shortcut = settings["global_hotkey"];
+      const apiKey = settings["llm_api_key"];
 
       setGlobalShortcut(shortcut || "CommandOrControl+Shift+C");
       setLlmApiKey(apiKey || "");

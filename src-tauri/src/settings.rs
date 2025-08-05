@@ -110,51 +110,6 @@ impl SettingsManager {
         let settings = self.settings.lock().unwrap();
         settings.clone()
     }
-
-    // Convenience methods for specific settings
-    pub fn get_global_hotkey(&self) -> String {
-        self.get_setting("global_hotkey")
-            .unwrap_or_else(|| "CommandOrControl+Shift+C".to_string())
-    }
-
-    pub fn set_global_hotkey(&self, hotkey: &str) -> Result<()> {
-        self.set_setting("global_hotkey", hotkey)
-    }
-
-    pub fn get_llm_api_key(&self) -> Option<String> {
-        self.get_setting("llm_api_key")
-    }
-
-    pub fn set_llm_api_key(&self, api_key: &str) -> Result<()> {
-        self.set_setting("llm_api_key", api_key)
-    }
-
-    pub fn has_llm_api_key(&self) -> bool {
-        self.get_llm_api_key()
-            .map(|key| !key.trim().is_empty())
-            .unwrap_or(false)
-    }
-
-    // Type-safe getters for different data types
-    pub fn get_setting_bool(&self, key: &str, default: bool) -> bool {
-        self.get_setting(key)
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(default)
-    }
-
-    pub fn set_setting_bool(&self, key: &str, value: bool) -> Result<()> {
-        self.set_setting(key, &value.to_string())
-    }
-
-    pub fn get_setting_int(&self, key: &str, default: i64) -> i64 {
-        self.get_setting(key)
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(default)
-    }
-
-    pub fn set_setting_int(&self, key: &str, value: i64) -> Result<()> {
-        self.set_setting(key, &value.to_string())
-    }
 }
 
 pub struct SettingsManagerState(pub Arc<SettingsManager>);
@@ -199,20 +154,6 @@ pub async fn get_all_settings(
     settings_manager: State<'_, SettingsManagerState>,
 ) -> Result<HashMap<String, String>, String> {
     Ok(settings_manager.0.get_all_settings())
-}
-
-#[tauri::command]
-pub async fn has_llm_api_key(
-    settings_manager: State<'_, SettingsManagerState>,
-) -> Result<bool, String> {
-    Ok(settings_manager.0.has_llm_api_key())
-}
-
-#[tauri::command]
-pub async fn get_global_hotkey(
-    settings_manager: State<'_, SettingsManagerState>,
-) -> Result<String, String> {
-    Ok(settings_manager.0.get_global_hotkey())
 }
 
 #[tauri::command]

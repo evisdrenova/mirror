@@ -97,7 +97,19 @@ pub fn handle_capture(app: &AppHandle) {
                         };
                     }
                 }
-                _ => {}
+                Clip::Image {
+                    data,
+                    width,
+                    height,
+                } => {
+                    match llm::get_clip_summary(&clip_clone).await {
+                        Ok(suggested_summary) => summary = suggested_summary,
+                        Err(e) => {
+                            eprintln!("LLM summarization failed: {}", e);
+                            summary = "No summary available".to_string();
+                        }
+                    };
+                }
             }
 
             // Save clip with category, tags, and summary

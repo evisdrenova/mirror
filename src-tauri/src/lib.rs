@@ -45,8 +45,8 @@ pub fn run() {
             commands::delete_item,
             settings::get_setting,
             settings::set_setting,
-            settings::get_global_hotkey,
-            settings::set_global_hotkey
+            settings::set_global_hotkey,
+            settings::get_all_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
