@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Input } from "./ui/input";
 import { Sparkles } from "lucide-react";
 import Spinner from "./Spinner";
+import { Button } from "./ui/button";
 
 interface CategoryInputProps {
   value: string;
