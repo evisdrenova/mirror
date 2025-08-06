@@ -20,9 +20,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(move |app, shortcut, event| {
-                    let app_handle = app.app_handle();
-                    shortcut::handle_shortcut(app_handle, shortcut, event);
+                .with_handler(move |app, _, event| {
+                    shortcut::handle_shortcut(app.app_handle(), event);
                 })
                 .build(),
         )

@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 use std::{path::PathBuf, thread, time::Duration};
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 use url::Url;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -25,8 +24,6 @@ pub enum Clip {
         width: usize,
         height: usize,
     },
-    // add in rich text format
-    // add in html
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -35,26 +32,15 @@ pub struct ClipContext {
     pub clip: Clip,
 }
 
-pub fn handle_shortcut(
-    app_handle: &AppHandle,
-    shortcut: &hotkey::HotKey,
-    event: GlobalHotKeyEvent,
-) {
-    let sc = shortcut_hotkey().unwrap();
+pub fn handle_shortcut(app_handle: &AppHandle, event: tauri_plugin_global_shortcut::ShortcutEvent) {
+    use tauri_plugin_global_shortcut::ShortcutState;
 
-    if shortcut == &sc {
-        match event.state {
-            ShortcutState::Pressed => {
-                handle_capture(app_handle);
-            }
-            _ => {}
+    match event.state {
+        ShortcutState::Pressed => {
+            handle_capture(&app_handle);
         }
+        _ => {}
     }
-}
-
-pub fn shortcut_hotkey() -> Result<Shortcut, Box<dyn std::error::Error>> {
-    let sc = Shortcut::new(Some(Modifiers::META | Modifiers::SHIFT), Code::KeyS);
-    Ok(sc)
 }
 
 #[cfg(target_os = "macos")]
