@@ -4,7 +4,6 @@ mod llm;
 mod settings;
 mod shortcut;
 
-use crate::shortcut::shortcut_hotkey;
 use std::env;
 use std::path::PathBuf;
 use tauri::Manager;
@@ -34,8 +33,15 @@ pub fn run() {
             });
             settings::init_settings(db_path, app.app_handle().clone())?;
 
-            let shortcutwrapper = shortcut_hotkey()?;
-            app.global_shortcut().register(shortcutwrapper)?;
+            let settings_state = app.state::<settings::SettingsManagerState>();
+
+            let hotkey_str = settings_state.0.get_global_hotkey();
+
+            let shortcut = shortcut::parse_hotkey_string(&hotkey_str)
+                .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey_str, e))?;
+
+            // Register the shortcut
+            app.global_shortcut().register(shortcut)?;
 
             Ok(())
         })
@@ -46,7 +52,9 @@ pub fn run() {
             settings::get_setting,
             settings::set_setting,
             settings::set_global_hotkey,
-            settings::get_all_settings
+            settings::get_global_hotkey,
+            settings::get_all_settings,
+            settings::test_global_hotkey,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

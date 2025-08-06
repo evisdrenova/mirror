@@ -1,4 +1,4 @@
-use crate::llm;
+use crate::{llm, settings::SettingsManager};
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
 use enigo::{
@@ -97,11 +97,7 @@ pub fn handle_capture(app: &AppHandle) {
                         };
                     }
                 }
-                Clip::Image {
-                    data,
-                    width,
-                    height,
-                } => {
+                Clip::Image { .. } => {
                     match llm::get_clip_summary(&clip_clone).await {
                         Ok(suggested_summary) => summary = suggested_summary,
                         Err(e) => {
@@ -112,7 +108,6 @@ pub fn handle_capture(app: &AppHandle) {
                 }
             }
 
-            // Save clip with category, tags, and summary
             if let Err(e) = save_clip(
                 &app_handle,
                 &db_path,
@@ -262,4 +257,114 @@ pub async fn save_clip(
     app_handle.emit("clip-saved", {}).unwrap();
 
     Ok(())
+}
+
+pub fn parse_hotkey_string(
+    hotkey_str: &str,
+) -> Result<tauri_plugin_global_shortcut::Shortcut, Box<dyn std::error::Error>> {
+    let parts: Vec<&str> = hotkey_str.split('+').collect();
+
+    let mut modifiers = tauri_plugin_global_shortcut::Modifiers::empty();
+    let mut key_code = None;
+
+    for part in parts {
+        match part.trim() {
+            "CommandOrControl" => {
+                #[cfg(target_os = "macos")]
+                {
+                    modifiers |= tauri_plugin_global_shortcut::Modifiers::META;
+                }
+            }
+            "Shift" => modifiers |= tauri_plugin_global_shortcut::Modifiers::SHIFT,
+            "Alt" => modifiers |= tauri_plugin_global_shortcut::Modifiers::ALT,
+            "Control" => modifiers |= tauri_plugin_global_shortcut::Modifiers::CONTROL,
+            "Meta" | "Cmd" | "Command" => {
+                modifiers |= tauri_plugin_global_shortcut::Modifiers::META
+            }
+            key => {
+                key_code = Some(parse_key_code(key)?);
+            }
+        }
+    }
+
+    let code = key_code.ok_or("No key specified in hotkey string")?;
+    Ok(tauri_plugin_global_shortcut::Shortcut::new(
+        Some(modifiers),
+        code,
+    ))
+}
+
+fn parse_key_code(
+    key: &str,
+) -> Result<tauri_plugin_global_shortcut::Code, Box<dyn std::error::Error>> {
+    use tauri_plugin_global_shortcut::Code;
+
+    match key.to_uppercase().as_str() {
+        "A" => Ok(Code::KeyA),
+        "B" => Ok(Code::KeyB),
+        "C" => Ok(Code::KeyC),
+        "D" => Ok(Code::KeyD),
+        "E" => Ok(Code::KeyE),
+        "F" => Ok(Code::KeyF),
+        "G" => Ok(Code::KeyG),
+        "H" => Ok(Code::KeyH),
+        "I" => Ok(Code::KeyI),
+        "J" => Ok(Code::KeyJ),
+        "K" => Ok(Code::KeyK),
+        "L" => Ok(Code::KeyL),
+        "M" => Ok(Code::KeyM),
+        "N" => Ok(Code::KeyN),
+        "O" => Ok(Code::KeyO),
+        "P" => Ok(Code::KeyP),
+        "Q" => Ok(Code::KeyQ),
+        "R" => Ok(Code::KeyR),
+        "S" => Ok(Code::KeyS),
+        "T" => Ok(Code::KeyT),
+        "U" => Ok(Code::KeyU),
+        "V" => Ok(Code::KeyV),
+        "W" => Ok(Code::KeyW),
+        "X" => Ok(Code::KeyX),
+        "Y" => Ok(Code::KeyY),
+        "Z" => Ok(Code::KeyZ),
+        "0" => Ok(Code::Digit0),
+        "1" => Ok(Code::Digit1),
+        "2" => Ok(Code::Digit2),
+        "3" => Ok(Code::Digit3),
+        "4" => Ok(Code::Digit4),
+        "5" => Ok(Code::Digit5),
+        "6" => Ok(Code::Digit6),
+        "7" => Ok(Code::Digit7),
+        "8" => Ok(Code::Digit8),
+        "9" => Ok(Code::Digit9),
+        "F1" => Ok(Code::F1),
+        "F2" => Ok(Code::F2),
+        "F3" => Ok(Code::F3),
+        "F4" => Ok(Code::F4),
+        "F5" => Ok(Code::F5),
+        "F6" => Ok(Code::F6),
+        "F7" => Ok(Code::F7),
+        "F8" => Ok(Code::F8),
+        "F9" => Ok(Code::F9),
+        "F10" => Ok(Code::F10),
+        "F11" => Ok(Code::F11),
+        "F12" => Ok(Code::F12),
+        "SPACE" => Ok(Code::Space),
+        "ENTER" => Ok(Code::Enter),
+        "ESCAPE" => Ok(Code::Escape),
+        _ => Err(format!("Unsupported key: {}", key).into()),
+    }
+}
+
+// Get shortcut from database or use default
+pub fn get_shortcut_from_settings(
+    settings_manager: &SettingsManager,
+) -> Result<tauri_plugin_global_shortcut::Shortcut, Box<dyn std::error::Error>> {
+    match settings_manager.get_setting("global_hotkey") {
+        Some(hotkey_str) => parse_hotkey_string(&hotkey_str),
+        None => {
+            // Default shortcut if none set
+            let default_shortcut = "CommandOrControl+Shift+S";
+            Ok(parse_hotkey_string(default_shortcut)?)
+        }
+    }
 }
