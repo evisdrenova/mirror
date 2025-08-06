@@ -17,6 +17,7 @@ pub struct CategoryResponse {
     pub category: String,
     pub tags: Vec<String>,
 }
+
 pub async fn get_llm_category(clip: &Clip) -> Result<CategoryResponse, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -141,7 +142,7 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
 
     let request = CreateResponseArgs::default()
         .max_output_tokens(100u32)
-        .model("gpt-4o") // Use GPT-4o for vision capabilities
+        .model("gpt-4o")
         .input(Input::Items(request_items))
         .build()?;
 
@@ -196,51 +197,90 @@ Output: {"category": "image", "tags": ["screenshot", "ui-design", "website", "mo
 pub async fn get_clip_summary(clip: &Clip) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
-    let content = match clip {
-        Clip::Text { plain } => {
-            if plain.len() > 2000 {
-                format!("{}...", &plain[..2000])
-            } else {
-                plain.clone()
-            }
-        }
-        Clip::Image { .. } => {
-            return Ok("image".to_string());
-        }
-    };
-
     let system_prompt = r#"You are a concise summarization assistant.
 Provide a clear, bullet-point summary of the key points.
 Do not include citations or extra commentary."#;
-    let user_prompt = format!(
+
+    let request_items = match clip {
+        Clip::Text { plain } => {
+            let content = if plain.len() > 2000 {
+                format!("{}...", &plain[..2000])
+            } else {
+                plain.clone()
+            };
+
+            let user_prompt = format!(
         "Please summarize the following content. If it came from a URL, provide a short overview of the page's main points.\n\n{:?}",
-        content
-    );
+        content);
+
+            vec![
+                InputItem::Message(
+                    InputMessageArgs::default()
+                        .role(Role::System)
+                        .content(system_prompt)
+                        .build()?,
+                ),
+                InputItem::Message(
+                    InputMessageArgs::default()
+                        .role(Role::User)
+                        .content(user_prompt)
+                        .build()?,
+                ),
+            ]
+        }
+        Clip::Image {
+            data,
+            width,
+            height,
+        } => {
+            let user_prompt = format!(
+                "Please provide a brief summary of the image content. Image dimensions: {}x{}. Analyze what you see in the image.",
+                width, height
+            );
+
+            let image_url = format!("data:image/png;base64,{}", data);
+
+            let im = InputImageArgs::default()
+                .image_url(image_url)
+                .detail(ImageDetail::Auto)
+                .build()?;
+
+            let content = InputContent::InputItemContentList(vec![ContentType::InputImage(im)]);
+
+            vec![
+                InputItem::Message(
+                    InputMessageArgs::default()
+                        .role(Role::System)
+                        .content(system_prompt)
+                        .build()?,
+                ),
+                InputItem::Message(
+                    InputMessageArgs::default()
+                        .role(Role::User)
+                        .content(user_prompt)
+                        .build()?,
+                ),
+                InputItem::Message(
+                    InputMessageArgs::default()
+                        .role(Role::User)
+                        .content(content)
+                        .build()?,
+                ),
+            ]
+        }
+    };
 
     let request = CreateResponseArgs::default()
-        // .max_output_tokens(50u32)
-        .model("gpt-4.1")
-        .input(Input::Items(vec![
-            InputItem::Message(
-                InputMessageArgs::default()
-                    .role(Role::System)
-                    .content(system_prompt)
-                    .build()?,
-            ),
-            InputItem::Message(
-                InputMessageArgs::default()
-                    .role(Role::User)
-                    .content(user_prompt)
-                    .build()?,
-            ),
-        ]))
+        .max_output_tokens(100u32)
+        .model("gpt-4o")
+        .input(Input::Items(request_items))
         .build()?;
 
     let response = client.responses().create(request).await?;
 
     for output in response.output {
         if let Some(content) = extract_content_from_output(&output) {
-            let summary = content.trim(); // Don't convert to lowercase!
+            let summary = content.trim();
 
             if !summary.is_empty() {
                 println!("LLM summary: {}", summary);
