@@ -96,17 +96,6 @@ impl SettingsManager {
         Ok(())
     }
 
-    pub fn remove_setting(&self, key: &str) -> Result<()> {
-        let conn = self.get_connection()?;
-
-        conn.execute("DELETE FROM settings WHERE key = ?", params![key])?;
-
-        let mut settings = self.settings.lock().unwrap();
-        settings.remove(key);
-
-        Ok(())
-    }
-
     pub fn get_all_settings(&self) -> HashMap<String, String> {
         let settings = self.settings.lock().unwrap();
         settings.clone()
@@ -115,10 +104,6 @@ impl SettingsManager {
     pub fn get_global_hotkey(&self) -> String {
         self.get_setting("global_hotkey")
             .unwrap_or_else(|| "CommandOrControl+Shift+C".to_string())
-    }
-
-    pub fn set_global_hotkey(&self, hotkey: &str) -> Result<()> {
-        self.set_setting("global_hotkey", hotkey)
     }
 }
 
@@ -172,18 +157,15 @@ pub async fn set_global_hotkey(
     settings_manager: State<'_, SettingsManagerState>,
     app: AppHandle,
 ) -> Result<(), String> {
-    // Validate the hotkey string first
     if let Err(e) = crate::shortcut::parse_hotkey_string(&hotkey) {
         return Err(format!("Invalid hotkey format: {}", e));
     }
 
-    // Save to database
     settings_manager
         .0
         .set_setting("global_hotkey", &hotkey)
         .map_err(|e| format!("Failed to save hotkey: {}", e))?;
 
-    // Update the actual global shortcut
     update_global_shortcut(app, &hotkey)
         .map_err(|e| format!("Failed to register hotkey: {}", e))?;
 
@@ -206,18 +188,14 @@ pub async fn test_global_hotkey(hotkey: String) -> Result<(), String> {
     Ok(())
 }
 
-// Helper function to update the global shortcut
 fn update_global_shortcut(
     app: AppHandle,
     hotkey_str: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Use the GlobalShortcutExt trait method for AppHandle
     let global_shortcut = app.global_shortcut();
 
-    // Unregister all existing shortcuts
     global_shortcut.unregister_all()?;
 
-    // Parse and register the new shortcut
     let shortcut = crate::shortcut::parse_hotkey_string(hotkey_str)?;
     global_shortcut.register(shortcut)?;
 

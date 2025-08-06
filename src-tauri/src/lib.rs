@@ -34,12 +34,23 @@ pub fn run() {
 
             let settings_state = app.state::<settings::SettingsManagerState>();
 
+            // openai lib reads openai api key from env var so we need to read from db
+            if let Some(api_key) = settings_state.0.get_setting("llm_api_key") {
+                if !api_key.is_empty() {
+                    env::set_var("OPENAI_API_KEY", api_key);
+                    println!("OpenAI API key loaded from database");
+                } else {
+                    println!("Warning: OpenAI API key is empty in database");
+                }
+            } else {
+                println!("Warning: No OpenAI API key found in database");
+            }
+
             let hotkey_str = settings_state.0.get_global_hotkey();
 
             let shortcut = shortcut::parse_hotkey_string(&hotkey_str)
                 .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey_str, e))?;
 
-            // Register the shortcut
             app.global_shortcut().register(shortcut)?;
 
             Ok(())

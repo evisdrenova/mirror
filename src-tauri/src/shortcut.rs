@@ -1,11 +1,10 @@
-use crate::{llm, settings::SettingsManager};
+use crate::llm;
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose, Engine};
 use enigo::{
     Direction::{Click, Press, Release},
     Enigo, Key, Keyboard, Settings,
 };
-use global_hotkey::{hotkey, GlobalHotKeyEvent};
 use image::{ImageBuffer, ImageFormat, Rgba};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
@@ -338,19 +337,5 @@ fn parse_key_code(
         "ENTER" => Ok(Code::Enter),
         "ESCAPE" => Ok(Code::Escape),
         _ => Err(format!("Unsupported key: {}", key).into()),
-    }
-}
-
-// Get shortcut from database or use default
-pub fn get_shortcut_from_settings(
-    settings_manager: &SettingsManager,
-) -> Result<tauri_plugin_global_shortcut::Shortcut, Box<dyn std::error::Error>> {
-    match settings_manager.get_setting("global_hotkey") {
-        Some(hotkey_str) => parse_hotkey_string(&hotkey_str),
-        None => {
-            // Default shortcut if none set
-            let default_shortcut = "CommandOrControl+Shift+S";
-            Ok(parse_hotkey_string(default_shortcut)?)
-        }
     }
 }
